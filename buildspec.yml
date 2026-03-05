@@ -1,0 +1,24 @@
+version: 0.2
+
+# Environment variables injected by CodeBuild (defined in Terraform):
+#   S3_BUCKET           — destination S3 bucket
+#   CLOUDFRONT_DIST_ID  — CloudFront distribution to invalidate
+
+phases:
+  install:
+    runtime-versions:
+      nodejs: 22
+    commands:
+      - npm ci
+
+  build:
+    commands:
+      - npm run lint || true
+      - npm run build
+      - aws s3 sync dist/ s3://$S3_BUCKET --delete
+      - aws cloudfront create-invalidation --distribution-id $CLOUDFRONT_DIST_ID --paths "/*"
+
+artifacts:
+  files:
+    - "**/*"
+  base-directory: dist

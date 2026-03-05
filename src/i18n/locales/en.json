@@ -1,0 +1,284 @@
+{
+  "nav": {
+    "services": "Services",
+    "about": "About",
+    "contact": "Contact",
+    "signIn": "Sign In",
+    "backHome": "Back to home"
+  },
+  "hero": {
+    "headline": "We transform your business with",
+    "headlineHighlight": "Cutting-Edge Technology",
+    "subheadline": "Specialized IT consulting in Cloud, DevOps, AI and Cybersecurity. Take your company to the next digital level.",
+    "cta": "Get Started",
+    "ctaSecondary": "View Services"
+  },
+  "services": {
+    "title": "Our Services",
+    "subtitle": "Comprehensive technology solutions for companies that want to grow and scale",
+    "cloud": {
+      "name": "Cloud Solutions",
+      "desc": "Migration, architecture and optimization on AWS, Azure and GCP. Scalable and secure infrastructure."
+    },
+    "devops": {
+      "name": "DevOps",
+      "desc": "CI/CD pipelines, containers, Kubernetes and automation for fast and reliable deliveries."
+    },
+    "software": {
+      "name": "Software Development",
+      "desc": "Custom web and mobile applications with best engineering practices and clean code."
+    },
+    "ai": {
+      "name": "AI & Data",
+      "desc": "LLM integration, machine learning and data pipelines to power intelligent decisions."
+    },
+    "security": {
+      "name": "Cybersecurity",
+      "desc": "Audits, pentesting, compliance and zero-trust architectures to protect your organization."
+    },
+    "consulting": {
+      "name": "IT Consulting",
+      "desc": "Technology strategy, digital transformation and IT governance aligned with your business goals."
+    }
+  },
+  "caseStudies": {
+    "title": "Case Studies",
+    "subtitle": "Projects that demonstrate our commitment to technical excellence",
+    "viewMore": "View more",
+    "cases": {
+      "c1": {
+        "title": "Cloud Migration for European FinTech",
+        "desc": "We migrated 200+ microservices to AWS EKS with zero downtime, reducing costs by 40% and improving availability to 99.99%.",
+        "tag": "Cloud / DevOps"
+      },
+      "c2": {
+        "title": "AI Platform for Legal Analysis",
+        "desc": "We implemented a RAG system with GPT-4 for legal contract analysis, reducing review time from hours to minutes.",
+        "tag": "AI & Data"
+      },
+      "c3": {
+        "title": "Zero-Trust Security for Retail",
+        "desc": "Complete security architecture with SIEM, WAF and 24/7 monitoring for a retail chain with 500 points of sale.",
+        "tag": "Cybersecurity"
+      }
+    }
+  },
+  "about": {
+    "title": "About NCODX",
+    "subtitle": "A team of engineers passionate about technology and real business impact",
+    "description": "NCODX was born with the mission of democratizing access to enterprise-level technology. We combine Big Tech experience with a startup mindset to deliver solutions that truly work.",
+    "stats": {
+      "experience": "Years of Experience",
+      "clients": "Satisfied Clients",
+      "projects": "Completed Projects",
+      "uptime": "Guaranteed Uptime"
+    }
+  },
+  "testimonials": {
+    "title": "What our clients say",
+    "subtitle": "The trust of our clients is our greatest asset"
+  },
+  "contact": {
+    "title": "Let's Talk",
+    "subtitle": "Have a project in mind? Tell us and we'll get back to you in less than 24 hours.",
+    "name": "Name",
+    "email": "Email",
+    "message": "Message",
+    "send": "Send Message",
+    "sending": "Sending...",
+    "success": "Message sent! We'll contact you soon.",
+    "namePlaceholder": "Your name",
+    "emailPlaceholder": "you@company.com",
+    "messagePlaceholder": "Tell us about your project..."
+  },
+  "footer": {
+    "tagline": "Technology that transforms businesses.",
+    "rights": "All rights reserved.",
+    "links": "Links",
+    "social": "Follow us"
+  },
+  "auth": {
+    "signIn": "Sign In",
+    "email": "Email",
+    "password": "Password",
+    "emailPlaceholder": "demo@ncodx.com",
+    "passwordPlaceholder": "••••••••",
+    "submit": "Sign In",
+    "submitting": "Signing in...",
+    "error": "Invalid credentials. Use demo@ncodx.com / password123",
+    "hint": "Use demo@ncodx.com / password123",
+    "backHome": "Back to home"
+  },
+  "app": {
+    "dashboard": "Dashboard",
+    "projects": "Projects",
+    "calendar": "Calendar",
+    "tasks": "Tasks",
+    "notes": "Notes",
+    "ai": "AI Prompt",
+    "secrets": "Secrets",
+    "settings": "Settings",
+    "logout": "Sign Out",
+    "welcome": "Welcome",
+    "search": "Search...",
+    "newProject": "New Project",
+    "newTask": "New Task",
+    "newNote": "New Note",
+    "newSecret": "New Secret",
+    "save": "Save",
+    "cancel": "Cancel",
+    "delete": "Delete",
+    "edit": "Edit",
+    "create": "Create",
+    "close": "Close",
+    "confirm": "Confirm",
+    "actions": "Actions",
+    "loading": "Loading...",
+    "noData": "No data",
+    "copied": "Copied!"
+  },
+  "dashboard": {
+    "title": "Dashboard",
+    "totalTasks": "Total Tasks",
+    "completedToday": "Completed Today",
+    "pending": "Pending",
+    "activeProjects": "Active Projects",
+    "recentTasks": "Recent Tasks",
+    "upcomingEvents": "Upcoming Events",
+    "quickActions": "Quick Actions",
+    "viewAll": "View all"
+  },
+  "projects": {
+    "title": "Projects",
+    "tasks": "tasks",
+    "completed": "completed",
+    "status": {
+      "active": "Active",
+      "paused": "Paused",
+      "completed": "Completed",
+      "archived": "Archived"
+    },
+    "newProject": {
+      "title": "New Project",
+      "name": "Project Name",
+      "description": "Description",
+      "color": "Color",
+      "dueDate": "Due Date",
+      "namePlaceholder": "My new project",
+      "descPlaceholder": "Describe the project objective..."
+    },
+    "detail": {
+      "backToProjects": "← Projects",
+      "progress": "Progress",
+      "taskBoard": "Task Board"
+    }
+  },
+  "tasks": {
+    "title": "Tasks",
+    "kanban": "Kanban",
+    "list": "List",
+    "filterByProject": "Filter by Project",
+    "filterByPriority": "Filter by Priority",
+    "allProjects": "All Projects",
+    "allPriorities": "All Priorities",
+    "columns": {
+      "todo": "To Do",
+      "in_progress": "In Progress",
+      "review": "Review",
+      "done": "Done"
+    },
+    "priority": {
+      "low": "Low",
+      "medium": "Medium",
+      "high": "High",
+      "urgent": "Urgent"
+    },
+    "newTask": {
+      "title": "New Task",
+      "taskTitle": "Title",
+      "description": "Description",
+      "priority": "Priority",
+      "project": "Project",
+      "dueDate": "Due Date",
+      "titlePlaceholder": "Task name",
+      "descPlaceholder": "Detailed description..."
+    }
+  },
+  "calendar": {
+    "title": "Calendar",
+    "month": "Month",
+    "week": "Week",
+    "day": "Day",
+    "agenda": "Agenda",
+    "today": "Today",
+    "back": "Back",
+    "next": "Next",
+    "connectedCalendars": "Connected Calendars",
+    "connectGoogle": "Connect Google Calendar",
+    "connectOutlook": "Connect Outlook",
+    "internal": "Internal",
+    "newEvent": "New Event",
+    "newEventTitle": "Event title"
+  },
+  "notes": {
+    "title": "Notes",
+    "subtitle": "Visual notes and reminders",
+    "pin": "Pin",
+    "unpin": "Unpin",
+    "deleteNote": "Delete note",
+    "newNote": "New Note",
+    "noteTitlePlaceholder": "Title...",
+    "noteContentPlaceholder": "Write something..."
+  },
+  "ai": {
+    "title": "AI Prompt",
+    "newChat": "New Conversation",
+    "placeholder": "Type your message...",
+    "send": "Send",
+    "conversations": "Conversations",
+    "thinking": "Thinking...",
+    "noConversation": "Select or create a conversation"
+  },
+  "secrets": {
+    "title": "Secrets",
+    "subtitle": "Manage your keys and credentials securely",
+    "show": "Show",
+    "hide": "Hide",
+    "copy": "Copy",
+    "category": {
+      "api_key": "API Key",
+      "password": "Password",
+      "token": "Token",
+      "other": "Other"
+    },
+    "newSecret": {
+      "title": "New Secret",
+      "name": "Name",
+      "value": "Value",
+      "category": "Category",
+      "description": "Description",
+      "namePlaceholder": "Secret name",
+      "valuePlaceholder": "Secret value",
+      "descPlaceholder": "Optional description..."
+    }
+  },
+  "settings": {
+    "title": "Settings",
+    "profile": "Profile",
+    "preferences": "Preferences",
+    "connections": "Connections",
+    "name": "Name",
+    "email": "Email",
+    "language": "Language",
+    "timezone": "Timezone",
+    "theme": "Theme",
+    "light": "Light",
+    "dark": "Dark",
+    "saveChanges": "Save Changes",
+    "calendarConnections": "Calendar Connections",
+    "connected": "Connected",
+    "notConnected": "Not connected",
+    "connect": "Connect",
+    "disconnect": "Disconnect"
+  }
+}

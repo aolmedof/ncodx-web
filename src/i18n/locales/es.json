@@ -1,0 +1,284 @@
+{
+  "nav": {
+    "services": "Servicios",
+    "about": "Nosotros",
+    "contact": "Contacto",
+    "signIn": "Iniciar Sesión",
+    "backHome": "Volver al inicio"
+  },
+  "hero": {
+    "headline": "Transformamos tu negocio con",
+    "headlineHighlight": "Tecnología de Vanguardia",
+    "subheadline": "Consultoría IT especializada en Cloud, DevOps, IA y Ciberseguridad. Llevamos tu empresa al siguiente nivel digital.",
+    "cta": "Comenzar",
+    "ctaSecondary": "Ver Servicios"
+  },
+  "services": {
+    "title": "Nuestros Servicios",
+    "subtitle": "Soluciones tecnológicas integrales para empresas que buscan crecer y escalar",
+    "cloud": {
+      "name": "Cloud Solutions",
+      "desc": "Migración, arquitectura y optimización en AWS, Azure y GCP. Infraestructura escalable y segura."
+    },
+    "devops": {
+      "name": "DevOps",
+      "desc": "CI/CD pipelines, contenedores, Kubernetes y automatización para entregas rápidas y confiables."
+    },
+    "software": {
+      "name": "Desarrollo de Software",
+      "desc": "Aplicaciones web y móviles a medida con las mejores prácticas de ingeniería y código limpio."
+    },
+    "ai": {
+      "name": "IA & Datos",
+      "desc": "Integración de LLMs, machine learning y pipelines de datos para impulsar decisiones inteligentes."
+    },
+    "security": {
+      "name": "Ciberseguridad",
+      "desc": "Auditorías, pentesting, compliance y arquitecturas zero-trust para proteger tu organización."
+    },
+    "consulting": {
+      "name": "IT Consulting",
+      "desc": "Estrategia tecnológica, transformación digital y gobierno IT alineados a tus objetivos de negocio."
+    }
+  },
+  "caseStudies": {
+    "title": "Casos de Éxito",
+    "subtitle": "Proyectos que demuestran nuestro compromiso con la excelencia técnica",
+    "viewMore": "Ver más",
+    "cases": {
+      "c1": {
+        "title": "Migración Cloud para FinTech Europea",
+        "desc": "Migramos 200+ microservicios a AWS EKS con zero downtime, reduciendo costes un 40% y mejorando la disponibilidad al 99.99%.",
+        "tag": "Cloud / DevOps"
+      },
+      "c2": {
+        "title": "Plataforma IA para Análisis Legal",
+        "desc": "Implementamos un sistema RAG con GPT-4 para análisis de contratos legales, reduciendo el tiempo de revisión de horas a minutos.",
+        "tag": "IA & Datos"
+      },
+      "c3": {
+        "title": "Zero-Trust Security para Retail",
+        "desc": "Arquitectura de seguridad completa con SIEM, WAF y monitoreo 24/7 para una cadena retail con 500 puntos de venta.",
+        "tag": "Ciberseguridad"
+      }
+    }
+  },
+  "about": {
+    "title": "Sobre NCODX",
+    "subtitle": "Un equipo de ingenieros apasionados por la tecnología y el impacto real en los negocios",
+    "description": "NCODX nació con la misión de democratizar el acceso a tecnología de nivel enterprise. Combinamos experiencia en las Big Tech con mentalidad startup para entregar soluciones que realmente funcionan.",
+    "stats": {
+      "experience": "Años de Experiencia",
+      "clients": "Clientes Satisfechos",
+      "projects": "Proyectos Completados",
+      "uptime": "Uptime Garantizado"
+    }
+  },
+  "testimonials": {
+    "title": "Lo que dicen nuestros clientes",
+    "subtitle": "La confianza de nuestros clientes es nuestro mayor activo"
+  },
+  "contact": {
+    "title": "Hablemos",
+    "subtitle": "¿Tienes un proyecto en mente? Cuéntanos y te responderemos en menos de 24 horas.",
+    "name": "Nombre",
+    "email": "Email",
+    "message": "Mensaje",
+    "send": "Enviar Mensaje",
+    "sending": "Enviando...",
+    "success": "¡Mensaje enviado! Te contactaremos pronto.",
+    "namePlaceholder": "Tu nombre",
+    "emailPlaceholder": "tu@empresa.com",
+    "messagePlaceholder": "Cuéntanos sobre tu proyecto..."
+  },
+  "footer": {
+    "tagline": "Tecnología que transforma negocios.",
+    "rights": "Todos los derechos reservados.",
+    "links": "Enlaces",
+    "social": "Síguenos"
+  },
+  "auth": {
+    "signIn": "Iniciar Sesión",
+    "email": "Email",
+    "password": "Contraseña",
+    "emailPlaceholder": "demo@ncodx.com",
+    "passwordPlaceholder": "••••••••",
+    "submit": "Entrar",
+    "submitting": "Entrando...",
+    "error": "Credenciales incorrectas. Usa demo@ncodx.com / password123",
+    "hint": "Usa demo@ncodx.com / password123",
+    "backHome": "Volver al inicio"
+  },
+  "app": {
+    "dashboard": "Dashboard",
+    "projects": "Proyectos",
+    "calendar": "Calendario",
+    "tasks": "Tareas",
+    "notes": "Pendientes",
+    "ai": "IA Prompt",
+    "secrets": "Secretos",
+    "settings": "Ajustes",
+    "logout": "Cerrar Sesión",
+    "welcome": "Bienvenido",
+    "search": "Buscar...",
+    "newProject": "Nuevo Proyecto",
+    "newTask": "Nueva Tarea",
+    "newNote": "Nueva Nota",
+    "newSecret": "Nuevo Secreto",
+    "save": "Guardar",
+    "cancel": "Cancelar",
+    "delete": "Eliminar",
+    "edit": "Editar",
+    "create": "Crear",
+    "close": "Cerrar",
+    "confirm": "Confirmar",
+    "actions": "Acciones",
+    "loading": "Cargando...",
+    "noData": "Sin datos",
+    "copied": "¡Copiado!"
+  },
+  "dashboard": {
+    "title": "Dashboard",
+    "totalTasks": "Total Tareas",
+    "completedToday": "Completadas Hoy",
+    "pending": "Pendientes",
+    "activeProjects": "Proyectos Activos",
+    "recentTasks": "Tareas Recientes",
+    "upcomingEvents": "Próximos Eventos",
+    "quickActions": "Acciones Rápidas",
+    "viewAll": "Ver todas"
+  },
+  "projects": {
+    "title": "Proyectos",
+    "tasks": "tareas",
+    "completed": "completadas",
+    "status": {
+      "active": "Activo",
+      "paused": "Pausado",
+      "completed": "Completado",
+      "archived": "Archivado"
+    },
+    "newProject": {
+      "title": "Nuevo Proyecto",
+      "name": "Nombre del Proyecto",
+      "description": "Descripción",
+      "color": "Color",
+      "dueDate": "Fecha límite",
+      "namePlaceholder": "Mi nuevo proyecto",
+      "descPlaceholder": "Describe el objetivo del proyecto..."
+    },
+    "detail": {
+      "backToProjects": "← Proyectos",
+      "progress": "Progreso",
+      "taskBoard": "Tablero de Tareas"
+    }
+  },
+  "tasks": {
+    "title": "Tareas",
+    "kanban": "Kanban",
+    "list": "Lista",
+    "filterByProject": "Filtrar por Proyecto",
+    "filterByPriority": "Filtrar por Prioridad",
+    "allProjects": "Todos los Proyectos",
+    "allPriorities": "Todas las Prioridades",
+    "columns": {
+      "todo": "Por Hacer",
+      "in_progress": "En Progreso",
+      "review": "En Revisión",
+      "done": "Completado"
+    },
+    "priority": {
+      "low": "Baja",
+      "medium": "Media",
+      "high": "Alta",
+      "urgent": "Urgente"
+    },
+    "newTask": {
+      "title": "Nueva Tarea",
+      "taskTitle": "Título",
+      "description": "Descripción",
+      "priority": "Prioridad",
+      "project": "Proyecto",
+      "dueDate": "Fecha límite",
+      "titlePlaceholder": "Nombre de la tarea",
+      "descPlaceholder": "Descripción detallada..."
+    }
+  },
+  "calendar": {
+    "title": "Calendario",
+    "month": "Mes",
+    "week": "Semana",
+    "day": "Día",
+    "agenda": "Agenda",
+    "today": "Hoy",
+    "back": "Anterior",
+    "next": "Siguiente",
+    "connectedCalendars": "Calendarios Conectados",
+    "connectGoogle": "Conectar Google Calendar",
+    "connectOutlook": "Conectar Outlook",
+    "internal": "Interno",
+    "newEvent": "Nuevo Evento",
+    "newEventTitle": "Título del evento"
+  },
+  "notes": {
+    "title": "Pendientes",
+    "subtitle": "Notas y recordatorios visuales",
+    "pin": "Fijar",
+    "unpin": "Desfijar",
+    "deleteNote": "Eliminar nota",
+    "newNote": "Nueva Nota",
+    "noteTitlePlaceholder": "Título...",
+    "noteContentPlaceholder": "Escribe algo..."
+  },
+  "ai": {
+    "title": "IA Prompt",
+    "newChat": "Nueva Conversación",
+    "placeholder": "Escribe tu mensaje...",
+    "send": "Enviar",
+    "conversations": "Conversaciones",
+    "thinking": "Pensando...",
+    "noConversation": "Selecciona o crea una conversación"
+  },
+  "secrets": {
+    "title": "Secretos",
+    "subtitle": "Gestiona tus claves y credenciales de forma segura",
+    "show": "Mostrar",
+    "hide": "Ocultar",
+    "copy": "Copiar",
+    "category": {
+      "api_key": "API Key",
+      "password": "Contraseña",
+      "token": "Token",
+      "other": "Otro"
+    },
+    "newSecret": {
+      "title": "Nuevo Secreto",
+      "name": "Nombre",
+      "value": "Valor",
+      "category": "Categoría",
+      "description": "Descripción",
+      "namePlaceholder": "Nombre del secreto",
+      "valuePlaceholder": "Valor secreto",
+      "descPlaceholder": "Descripción opcional..."
+    }
+  },
+  "settings": {
+    "title": "Ajustes",
+    "profile": "Perfil",
+    "preferences": "Preferencias",
+    "connections": "Conexiones",
+    "name": "Nombre",
+    "email": "Email",
+    "language": "Idioma",
+    "timezone": "Zona Horaria",
+    "theme": "Tema",
+    "light": "Claro",
+    "dark": "Oscuro",
+    "saveChanges": "Guardar Cambios",
+    "calendarConnections": "Conexiones de Calendario",
+    "connected": "Conectado",
+    "notConnected": "No conectado",
+    "connect": "Conectar",
+    "disconnect": "Desconectar"
+  }
+}
