@@ -18,6 +18,13 @@ async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
     headers,
   });
 
+  if (response.status === 401) {
+    localStorage.removeItem('ncodx_token');
+    localStorage.removeItem('ncodx_user');
+    window.location.href = '/signin';
+    throw new Error('Unauthorized');
+  }
+
   if (!response.ok) {
     const error = await response.text();
     throw new Error(error || `HTTP ${response.status}`);

@@ -23,6 +23,24 @@ export function login(email: string, password: string): AuthState {
   throw new Error('Invalid credentials');
 }
 
+// Real API login — used when VITE_API_BASE_URL is configured
+export async function loginWithApi(email: string, password: string): Promise<AuthState> {
+  const BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3001';
+  const resp = await fetch(`${BASE_URL}/auth/login`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ email, password }),
+  });
+  if (!resp.ok) {
+    const err = await resp.text();
+    throw new Error(err || 'Invalid credentials');
+  }
+  const { token, user } = await resp.json() as { token: string; user: User };
+  localStorage.setItem(TOKEN_KEY, token);
+  localStorage.setItem(USER_KEY, JSON.stringify(user));
+  return { user, token, isAuthenticated: true };
+}
+
 export function logout(): void {
   localStorage.removeItem(TOKEN_KEY);
   localStorage.removeItem(USER_KEY);

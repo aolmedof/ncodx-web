@@ -111,6 +111,46 @@ export interface Secret {
   updatedAt: string;
 }
 
+// ─── Goals ───────────────────────────────────────────────────────────────────
+export interface Goal {
+  id: string;
+  title: string;
+  description?: string;
+  status: string;
+  progress: number;
+  dueDate?: string;
+  userId: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+// ─── Shopping ────────────────────────────────────────────────────────────────
+export interface ShoppingItem {
+  id: string;
+  name: string;
+  quantity: number;
+  unit?: string;
+  checked: boolean;
+  category?: string;
+  userId: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+// ─── Calendar Connection ──────────────────────────────────────────────────────
+export interface CalendarConnection {
+  id: string;
+  provider: string;
+  expiresAt?: string;
+  metadata?: Record<string, unknown>;
+  createdAt: string;
+  updatedAt: string;
+}
+
+// ─── AI Chat (API aliases) ────────────────────────────────────────────────────
+export type AiMessage = ChatMessage;
+export type AiConversation = ChatConversation;
+
 // ─── Dashboard Stats ─────────────────────────────────────────────────────────
 export interface DashboardStats {
   totalTasks: number;
