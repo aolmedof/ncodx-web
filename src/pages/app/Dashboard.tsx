@@ -7,19 +7,15 @@ import {
   Clock,
   FolderKanban,
   ArrowRight,
-  Plus,
-  Calendar,
-  Zap,
 } from 'lucide-react';
-import { mockDashboardStats, mockTasks, mockCalendarEvents } from '@/lib/mock-data';
-import { getUser } from '@/lib/auth';
+import { mockDashboardStats, mockTasks, mockProjects, mockTimesheetEntries } from '@/lib/mock-data';
 import { format } from 'date-fns';
 
 const PRIORITY_COLORS = {
-  low: 'bg-slate-600 text-slate-200',
-  medium: 'bg-amber-600/20 text-amber-300 border border-amber-700/40',
-  high: 'bg-orange-600/20 text-orange-300 border border-orange-700/40',
-  urgent: 'bg-red-600/20 text-red-300 border border-red-700/40',
+  low: 'bg-signal-surface text-signal-text-dim border border-signal-border',
+  medium: 'bg-signal-surface text-amber-400 border border-amber-700/40',
+  high: 'bg-signal-surface text-orange-400 border border-orange-700/40',
+  urgent: 'bg-signal-surface text-red-400 border border-red-700/40',
 };
 
 const container = {
@@ -28,176 +24,189 @@ const container = {
 };
 const item = {
   hidden: { opacity: 0, y: 20 },
-  show: { opacity: 1, y: 0, transition: { duration: 0.45 } },
+  show: { opacity: 1, y: 0, transition: { duration: 0.4 } },
 };
 
 export function Dashboard() {
   const { t } = useTranslation();
-  const user = getUser();
   const stats = mockDashboardStats;
   const recentTasks = mockTasks.slice(0, 5);
-  const upcomingEvents = mockCalendarEvents.slice(0, 4);
+  const activeProjects = mockProjects.filter((p) => p.status === 'active');
+  const totalHoursThisWeek = mockTimesheetEntries.reduce((sum, e) => sum + e.hours, 0);
 
   const statCards = [
-    { key: 'totalTasks', value: stats.totalTasks, icon: CheckSquare, color: 'text-primary-400', bg: 'bg-primary-900/30' },
-    { key: 'completedToday', value: stats.completedToday, icon: CheckCircle, color: 'text-accent-400', bg: 'bg-accent-900/30' },
-    { key: 'pending', value: stats.pending, icon: Clock, color: 'text-amber-400', bg: 'bg-amber-900/30' },
-    { key: 'activeProjects', value: stats.activeProjects, icon: FolderKanban, color: 'text-violet-400', bg: 'bg-violet-900/30' },
+    {
+      label: t('dashboard.totalTasks', 'Total Tasks'),
+      value: stats.totalTasks,
+      icon: CheckSquare,
+      iconClass: 'text-signal-green',
+    },
+    {
+      label: t('dashboard.completedToday', 'Completed Today'),
+      value: stats.completedToday,
+      icon: CheckCircle,
+      iconClass: 'text-signal-green',
+    },
+    {
+      label: t('dashboard.hoursThisWeek', 'Hours This Week'),
+      value: totalHoursThisWeek,
+      icon: Clock,
+      iconClass: 'text-signal-text-dim',
+    },
+    {
+      label: t('dashboard.activeProjects', 'Active Projects'),
+      value: stats.activeProjects,
+      icon: FolderKanban,
+      iconClass: 'text-signal-text-dim',
+    },
   ];
 
   return (
-    <div className="p-6">
-      {/* Welcome */}
+    <div className="p-6 bg-signal-bg min-h-full font-mono">
+      {/* Header */}
       <motion.div
-        initial={{ opacity: 0, y: -15 }}
+        initial={{ opacity: 0, y: -12 }}
         animate={{ opacity: 1, y: 0 }}
         className="mb-6"
       >
-        <h2 className="text-2xl font-bold text-white">
-          {t('app.welcome')}, {user?.name?.split(' ')[0]} 👋
+        <div className="text-signal-text-muted text-xs tracking-widest mb-1">// GLOBAL OVERVIEW</div>
+        <h2 className="text-xl font-bold text-signal-text">
+          {t('dashboard.title', 'Dashboard')}
         </h2>
-        <p className="text-slate-400 text-sm mt-1">
+        <p className="text-signal-text-muted text-xs mt-1">
           {format(new Date(), 'EEEE, MMMM d, yyyy')}
         </p>
       </motion.div>
 
-      {/* Stats */}
+      {/* Stat Cards */}
       <motion.div
         variants={container}
         initial="hidden"
         animate="show"
-        className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6"
+        className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-6"
       >
-        {statCards.map(({ key, value, icon: Icon, color, bg }) => (
+        {statCards.map(({ label, value, icon: Icon, iconClass }) => (
           <motion.div
-            key={key}
+            key={label}
             variants={item}
-            className="bg-slate-900 border border-slate-800 rounded-xl p-4 hover:border-slate-700 transition-colors"
+            className="bg-signal-card border border-signal-border rounded p-4 hover:border-signal-border-bright transition-colors"
           >
             <div className="flex items-center justify-between mb-3">
-              <span className="text-slate-400 text-sm">{t(`dashboard.${key}`)}</span>
-              <div className={`w-8 h-8 ${bg} rounded-lg flex items-center justify-center`}>
-                <Icon size={16} className={color} />
-              </div>
+              <span className="text-signal-text-muted text-xs uppercase tracking-wider">{label}</span>
+              <Icon size={15} className={iconClass} />
             </div>
-            <div className="text-3xl font-bold text-white">{value}</div>
+            <div className="text-3xl font-bold text-signal-text">{value}</div>
           </motion.div>
         ))}
       </motion.div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
         {/* Recent Tasks */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.3 }}
-          className="lg:col-span-2 bg-slate-900 border border-slate-800 rounded-xl p-5"
+          className="lg:col-span-2 bg-signal-card border border-signal-border rounded p-5"
         >
           <div className="flex items-center justify-between mb-4">
-            <h3 className="text-white font-semibold">{t('dashboard.recentTasks')}</h3>
+            <div className="text-xs text-signal-text-muted tracking-widest">// RECENT TASKS</div>
             <Link
               to="/app/tasks"
-              className="flex items-center gap-1 text-primary-400 hover:text-primary-300 text-sm transition-colors"
+              className="flex items-center gap-1 text-signal-green hover:text-signal-text text-xs transition-colors"
             >
-              {t('dashboard.viewAll')} <ArrowRight size={14} />
+              {t('dashboard.viewAll', 'View all')} <ArrowRight size={12} />
             </Link>
           </div>
-          <div className="space-y-2">
+          <div className="space-y-1">
             {recentTasks.map((task) => (
               <div
                 key={task.id}
-                className="flex items-center gap-3 p-3 rounded-lg hover:bg-slate-800/50 transition-colors"
+                className="flex items-center gap-3 p-2.5 rounded hover:bg-signal-surface transition-colors"
               >
                 <div
-                  className="w-2.5 h-2.5 rounded-full flex-shrink-0"
+                  className="w-2 h-2 rounded-full flex-shrink-0"
                   style={{ backgroundColor: task.projectColor }}
                 />
                 <div className="flex-1 min-w-0">
-                  <p className="text-slate-200 text-sm font-medium truncate">{task.title}</p>
-                  <p className="text-slate-500 text-xs">{task.projectName}</p>
+                  <p className="text-signal-text text-sm truncate">{task.title}</p>
+                  <p className="text-signal-text-muted text-xs">{task.projectName}</p>
                 </div>
-                <span className={`text-xs px-2 py-0.5 rounded-md font-medium ${PRIORITY_COLORS[task.priority]}`}>
-                  {t(`tasks.priority.${task.priority}`)}
+                <span className={`text-xs px-2 py-0.5 rounded font-medium ${PRIORITY_COLORS[task.priority]}`}>
+                  {t(`tasks.priority.${task.priority}`, task.priority)}
                 </span>
                 <span
-                  className={`text-xs px-2 py-0.5 rounded-md ${
+                  className={`text-xs px-2 py-0.5 rounded ${
                     task.status === 'done'
-                      ? 'bg-accent-900/40 text-accent-300'
+                      ? 'text-signal-green border border-signal-green/40'
                       : task.status === 'in_progress'
-                      ? 'bg-primary-900/40 text-primary-300'
-                      : 'bg-slate-700 text-slate-300'
+                      ? 'text-signal-text-dim border border-signal-border-bright'
+                      : 'text-signal-text-muted border border-signal-border'
                   }`}
                 >
-                  {t(`tasks.columns.${task.status}`)}
+                  {t(`tasks.columns.${task.status}`, task.status)}
                 </span>
               </div>
             ))}
           </div>
         </motion.div>
 
-        {/* Upcoming Events + Quick Actions */}
-        <div className="space-y-4">
-          {/* Quick actions */}
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.4 }}
-            className="bg-slate-900 border border-slate-800 rounded-xl p-5"
-          >
-            <h3 className="text-white font-semibold mb-3">{t('dashboard.quickActions')}</h3>
-            <div className="space-y-2">
-              <Link
-                to="/app/tasks"
-                className="flex items-center gap-2 w-full px-3 py-2.5 bg-primary-600/20 hover:bg-primary-600/30 border border-primary-700/30 rounded-lg text-primary-300 text-sm font-medium transition-colors"
-              >
-                <Plus size={15} /> {t('app.newTask')}
-              </Link>
-              <Link
-                to="/app/projects"
-                className="flex items-center gap-2 w-full px-3 py-2.5 bg-slate-800 hover:bg-slate-700 rounded-lg text-slate-300 text-sm font-medium transition-colors"
-              >
-                <FolderKanban size={15} /> {t('app.newProject')}
-              </Link>
-              <Link
-                to="/app/ai"
-                className="flex items-center gap-2 w-full px-3 py-2.5 bg-slate-800 hover:bg-slate-700 rounded-lg text-slate-300 text-sm font-medium transition-colors"
-              >
-                <Zap size={15} /> {t('app.ai')}
-              </Link>
-            </div>
-          </motion.div>
-
-          {/* Upcoming events */}
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.5 }}
-            className="bg-slate-900 border border-slate-800 rounded-xl p-5"
-          >
-            <div className="flex items-center justify-between mb-3">
-              <h3 className="text-white font-semibold">{t('dashboard.upcomingEvents')}</h3>
-              <Link to="/app/calendar">
-                <Calendar size={15} className="text-slate-400 hover:text-white transition-colors" />
-              </Link>
-            </div>
-            <div className="space-y-2">
-              {upcomingEvents.map((event) => (
-                <div key={event.id} className="flex items-start gap-3">
-                  <div
-                    className="w-1.5 h-1.5 rounded-full mt-1.5 flex-shrink-0"
-                    style={{ backgroundColor: event.color }}
-                  />
-                  <div className="min-w-0">
-                    <p className="text-slate-200 text-sm truncate">{event.title}</p>
-                    <p className="text-slate-500 text-xs">
-                      {format(event.start, 'MMM d, HH:mm')}
-                    </p>
+        {/* Quick Links to Projects */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.4 }}
+          className="bg-signal-card border border-signal-border rounded p-5"
+        >
+          <div className="flex items-center justify-between mb-4">
+            <div className="text-xs text-signal-text-muted tracking-widest">// PROJECTS</div>
+            <Link
+              to="/app/projects"
+              className="flex items-center gap-1 text-signal-green hover:text-signal-text text-xs transition-colors"
+            >
+              {t('dashboard.viewAll', 'View all')} <ArrowRight size={12} />
+            </Link>
+          </div>
+          <div className="space-y-2">
+            {activeProjects.map((project) => {
+              const progress =
+                project.taskCount > 0
+                  ? Math.round((project.completedTaskCount / project.taskCount) * 100)
+                  : 0;
+              return (
+                <Link
+                  key={project.id}
+                  to={`/app/p/${project.id}`}
+                  className="block p-3 bg-signal-surface border border-signal-border hover:border-signal-border-bright rounded transition-colors group"
+                >
+                  <div className="flex items-center gap-2 mb-2">
+                    <div
+                      className="w-2.5 h-2.5 rounded-sm flex-shrink-0"
+                      style={{ backgroundColor: project.color }}
+                    />
+                    <span className="text-signal-text text-xs font-semibold truncate group-hover:text-signal-green transition-colors">
+                      {project.name}
+                    </span>
                   </div>
-                </div>
-              ))}
-            </div>
-          </motion.div>
-        </div>
+                  <div className="w-full bg-signal-bg rounded-full h-1">
+                    <div
+                      className="h-1 rounded-full transition-all duration-500"
+                      style={{ width: `${progress}%`, backgroundColor: project.color }}
+                    />
+                  </div>
+                  <div className="flex justify-between text-xs text-signal-text-muted mt-1">
+                    <span>{project.completedTaskCount}/{project.taskCount} tasks</span>
+                    <span>{progress}%</span>
+                  </div>
+                </Link>
+              );
+            })}
+            {activeProjects.length === 0 && (
+              <p className="text-signal-text-muted text-xs py-4 text-center">
+                {t('projects.noProjects', 'No active projects')}
+              </p>
+            )}
+          </div>
+        </motion.div>
       </div>
     </div>
   );

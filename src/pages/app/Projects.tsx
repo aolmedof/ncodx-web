@@ -8,10 +8,10 @@ import type { Project } from '@/types';
 
 const PROJECT_COLORS = ['#2563eb', '#0d9488', '#7c3aed', '#dc2626', '#d97706', '#059669', '#0891b2', '#db2777'];
 const STATUS_COLORS = {
-  active: 'bg-accent-900/40 text-accent-300',
-  paused: 'bg-amber-900/40 text-amber-300',
-  completed: 'bg-primary-900/40 text-primary-300',
-  archived: 'bg-slate-700 text-slate-400',
+  active: 'text-signal-green border border-signal-green/40',
+  paused: 'text-amber-400 border border-amber-700/40',
+  completed: 'text-signal-text-dim border border-signal-border-bright',
+  archived: 'text-signal-text-muted border border-signal-border',
 };
 
 const container = {
@@ -44,14 +44,17 @@ export function Projects() {
   };
 
   return (
-    <div className="p-6">
+    <div className="p-6 bg-signal-bg min-h-full font-mono">
       <div className="flex items-center justify-between mb-6">
-        <h2 className="text-xl font-bold text-white">{t('projects.title')}</h2>
+        <div>
+          <div className="text-signal-text-muted text-xs tracking-widest mb-1">// PROYECTOS</div>
+          <h2 className="text-xl font-bold text-signal-text">{t('projects.title')}</h2>
+        </div>
         <button
           onClick={() => setShowModal(true)}
-          className="flex items-center gap-2 px-4 py-2 bg-primary-600 hover:bg-primary-500 text-white rounded-lg text-sm font-semibold transition-colors"
+          className="flex items-center gap-2 px-3 py-2 bg-signal-green hover:opacity-90 text-signal-bg rounded text-xs font-bold transition-opacity"
         >
-          <Plus size={16} /> {t('app.newProject')}
+          <Plus size={14} /> {t('app.newProject')}
         </button>
       </div>
 
@@ -73,76 +76,86 @@ export function Projects() {
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4"
+            className="fixed inset-0 bg-black/70 backdrop-blur-sm z-50 flex items-center justify-center p-4"
             onClick={(e) => e.target === e.currentTarget && setShowModal(false)}
           >
             <motion.div
               initial={{ scale: 0.9, opacity: 0 }}
               animate={{ scale: 1, opacity: 1 }}
               exit={{ scale: 0.9, opacity: 0 }}
-              className="bg-slate-900 border border-slate-700 rounded-2xl p-6 w-full max-w-md"
+              className="bg-signal-card border border-signal-border rounded p-6 w-full max-w-md"
             >
               <div className="flex items-center justify-between mb-5">
-                <h3 className="text-white font-semibold">{t('projects.newProject.title')}</h3>
-                <button onClick={() => setShowModal(false)} className="text-slate-400 hover:text-white">
-                  <X size={18} />
+                <h3 className="text-signal-text font-semibold font-mono text-sm">
+                  {t('projects.newProject.title')}
+                </h3>
+                <button onClick={() => setShowModal(false)} className="text-signal-text-muted hover:text-signal-text transition-colors">
+                  <X size={16} />
                 </button>
               </div>
               <form onSubmit={handleCreate} className="space-y-4">
                 <div>
-                  <label className="block text-sm text-slate-300 mb-1">{t('projects.newProject.name')}</label>
+                  <label className="block text-xs text-signal-text-dim uppercase tracking-wider mb-1.5">
+                    {t('projects.newProject.name')}
+                  </label>
                   <input
                     required
                     placeholder={t('projects.newProject.namePlaceholder')}
                     value={form.name}
                     onChange={(e) => setForm({ ...form, name: e.target.value })}
-                    className="w-full px-3 py-2.5 bg-slate-800 border border-slate-700 rounded-lg text-white placeholder-slate-500 focus:outline-none focus:border-primary-500 text-sm"
+                    className="w-full px-3 py-2 bg-signal-surface border border-signal-border rounded text-signal-text placeholder-signal-text-muted focus:outline-none focus:border-signal-green text-sm font-mono transition-colors"
                   />
                 </div>
                 <div>
-                  <label className="block text-sm text-slate-300 mb-1">{t('projects.newProject.description')}</label>
+                  <label className="block text-xs text-signal-text-dim uppercase tracking-wider mb-1.5">
+                    {t('projects.newProject.description')}
+                  </label>
                   <textarea
                     rows={3}
                     placeholder={t('projects.newProject.descPlaceholder')}
                     value={form.description}
                     onChange={(e) => setForm({ ...form, description: e.target.value })}
-                    className="w-full px-3 py-2.5 bg-slate-800 border border-slate-700 rounded-lg text-white placeholder-slate-500 focus:outline-none focus:border-primary-500 text-sm resize-none"
+                    className="w-full px-3 py-2 bg-signal-surface border border-signal-border rounded text-signal-text placeholder-signal-text-muted focus:outline-none focus:border-signal-green text-sm font-mono resize-none transition-colors"
                   />
                 </div>
                 <div>
-                  <label className="block text-sm text-slate-300 mb-2">{t('projects.newProject.color')}</label>
+                  <label className="block text-xs text-signal-text-dim uppercase tracking-wider mb-2">
+                    {t('projects.newProject.color')}
+                  </label>
                   <div className="flex gap-2 flex-wrap">
                     {PROJECT_COLORS.map((c) => (
                       <button
                         key={c}
                         type="button"
                         onClick={() => setForm({ ...form, color: c })}
-                        className={`w-7 h-7 rounded-full transition-all ${form.color === c ? 'ring-2 ring-white ring-offset-2 ring-offset-slate-900' : ''}`}
+                        className={`w-6 h-6 rounded transition-all ${form.color === c ? 'ring-2 ring-signal-green ring-offset-2 ring-offset-signal-card' : ''}`}
                         style={{ backgroundColor: c }}
                       />
                     ))}
                   </div>
                 </div>
                 <div>
-                  <label className="block text-sm text-slate-300 mb-1">{t('projects.newProject.dueDate')}</label>
+                  <label className="block text-xs text-signal-text-dim uppercase tracking-wider mb-1.5">
+                    {t('projects.newProject.dueDate')}
+                  </label>
                   <input
                     type="date"
                     value={form.dueDate}
                     onChange={(e) => setForm({ ...form, dueDate: e.target.value })}
-                    className="w-full px-3 py-2.5 bg-slate-800 border border-slate-700 rounded-lg text-white focus:outline-none focus:border-primary-500 text-sm"
+                    className="w-full px-3 py-2 bg-signal-surface border border-signal-border rounded text-signal-text focus:outline-none focus:border-signal-green text-sm font-mono transition-colors"
                   />
                 </div>
                 <div className="flex gap-3 pt-2">
                   <button
                     type="button"
                     onClick={() => setShowModal(false)}
-                    className="flex-1 px-4 py-2.5 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-lg text-sm font-medium transition-colors"
+                    className="flex-1 px-4 py-2 bg-signal-surface hover:bg-signal-bg border border-signal-border text-signal-text-dim rounded text-xs font-medium transition-colors"
                   >
                     {t('app.cancel')}
                   </button>
                   <button
                     type="submit"
-                    className="flex-1 px-4 py-2.5 bg-primary-600 hover:bg-primary-500 text-white rounded-lg text-sm font-semibold transition-colors"
+                    className="flex-1 px-4 py-2 bg-signal-green hover:opacity-90 text-signal-bg rounded text-xs font-bold transition-opacity"
                   >
                     {t('app.create')}
                   </button>
@@ -161,40 +174,40 @@ function ProjectCard({ project }: { project: Project }) {
   const progress = project.taskCount > 0 ? (project.completedTaskCount / project.taskCount) * 100 : 0;
 
   return (
-    <motion.div variants={item} whileHover={{ y: -4 }}>
+    <motion.div variants={item} whileHover={{ y: -3 }}>
       <Link
-        to={`/app/projects/${project.id}`}
-        className="block bg-slate-900 border border-slate-800 hover:border-slate-700 rounded-xl p-5 transition-all duration-200 group"
+        to={`/app/p/${project.id}`}
+        className="block bg-signal-card border border-signal-border hover:border-signal-border-bright rounded p-5 transition-all duration-200 group"
       >
         <div className="flex items-start justify-between mb-3">
           <div className="flex items-center gap-3">
             <div
-              className="w-10 h-10 rounded-xl flex items-center justify-center"
-              style={{ backgroundColor: project.color + '30' }}
+              className="w-9 h-9 rounded flex items-center justify-center"
+              style={{ backgroundColor: project.color + '22' }}
             >
-              <FolderKanban size={18} style={{ color: project.color }} />
+              <FolderKanban size={16} style={{ color: project.color }} />
             </div>
             <div>
-              <h3 className="text-white font-semibold text-sm group-hover:text-primary-300 transition-colors">
+              <h3 className="text-signal-text font-semibold text-sm group-hover:text-signal-green transition-colors">
                 {project.name}
               </h3>
-              <span className={`text-xs px-2 py-0.5 rounded-md font-medium ${STATUS_COLORS[project.status]}`}>
+              <span className={`text-xs px-2 py-0.5 rounded font-medium ${STATUS_COLORS[project.status]}`}>
                 {t(`projects.status.${project.status}`)}
               </span>
             </div>
           </div>
         </div>
 
-        <p className="text-slate-400 text-xs leading-relaxed mb-4 line-clamp-2">{project.description}</p>
+        <p className="text-signal-text-muted text-xs leading-relaxed mb-4 line-clamp-2">{project.description}</p>
 
-        <div className="space-y-2">
-          <div className="flex justify-between text-xs text-slate-500">
+        <div className="space-y-1.5">
+          <div className="flex justify-between text-xs text-signal-text-muted">
             <span>{project.completedTaskCount}/{project.taskCount} {t('projects.tasks')}</span>
             <span>{Math.round(progress)}%</span>
           </div>
-          <div className="w-full bg-slate-800 rounded-full h-1.5">
+          <div className="w-full bg-signal-bg rounded-full h-1">
             <div
-              className="h-1.5 rounded-full transition-all duration-500"
+              className="h-1 rounded-full transition-all duration-500"
               style={{ width: `${progress}%`, backgroundColor: project.color }}
             />
           </div>
@@ -203,7 +216,7 @@ function ProjectCard({ project }: { project: Project }) {
         {project.tags.length > 0 && (
           <div className="flex gap-1.5 flex-wrap mt-3">
             {project.tags.slice(0, 3).map((tag) => (
-              <span key={tag} className="text-xs px-2 py-0.5 bg-slate-800 text-slate-400 rounded-md">
+              <span key={tag} className="text-xs px-2 py-0.5 bg-signal-surface border border-signal-border text-signal-text-muted rounded">
                 {tag}
               </span>
             ))}

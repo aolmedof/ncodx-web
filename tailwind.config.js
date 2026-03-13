@@ -38,10 +38,54 @@ export default {
           darker: '#020617',
           light: '#f8fafc',
         },
+        // Signal Dashboard theme
+        signal: {
+          green: '#00FF41',
+          'green-dim': '#00CC33',
+          'green-glow': 'rgba(0,255,65,0.15)',
+          bg: '#020408',
+          surface: '#060d0f',
+          card: '#0a1520',
+          border: '#1a2a3a',
+          'border-bright': '#2a4a5a',
+          text: '#c8d8e8',
+          'text-dim': '#7a9ab0',
+          'text-muted': '#3a5060',
+        },
       },
       fontFamily: {
         sans: ['Inter', 'system-ui', '-apple-system', 'sans-serif'],
-        mono: ['JetBrains Mono', 'Fira Code', 'monospace'],
+        mono: ['"JetBrains Mono"', '"Fira Code"', 'monospace'],
+      },
+      boxShadow: {
+        'glow-green': '0 0 20px rgba(0,255,65,0.3)',
+        'glow-green-sm': '0 0 10px rgba(0,255,65,0.2)',
+        'inner-dark': 'inset 0 1px 0 rgba(255,255,255,0.05)',
+        'signal-card': '0 4px 24px rgba(0,0,0,0.4), inset 0 1px 0 rgba(255,255,255,0.04)',
+      },
+      animation: {
+        'blink': 'blink 1s step-end infinite',
+        'glow-pulse': 'glowPulse 2s ease-in-out infinite',
+        'slide-in-right': 'slideInRight 0.3s ease-out',
+        'fade-in-up': 'fadeInUp 0.3s ease-out',
+      },
+      keyframes: {
+        blink: {
+          '0%, 100%': { opacity: '1' },
+          '50%': { opacity: '0' },
+        },
+        glowPulse: {
+          '0%, 100%': { boxShadow: '0 0 10px rgba(0,255,65,0.2)' },
+          '50%': { boxShadow: '0 0 25px rgba(0,255,65,0.4)' },
+        },
+        slideInRight: {
+          from: { transform: 'translateX(100%)', opacity: '0' },
+          to: { transform: 'translateX(0)', opacity: '1' },
+        },
+        fadeInUp: {
+          from: { transform: 'translateY(10px)', opacity: '0' },
+          to: { transform: 'translateY(0)', opacity: '1' },
+        },
       },
     },
   },
