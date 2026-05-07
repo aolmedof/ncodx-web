@@ -121,9 +121,9 @@ export function Contact() {
             className="space-y-8"
           >
             {[
-              { icon: Mail, label: 'Email', value: 'hello@ncodx.com' },
-              { icon: Phone, label: 'Phone', value: '+34 900 123 456' },
-              { icon: MapPin, label: 'Location', value: 'Madrid, Spain · Remote-first' },
+              { icon: Mail, label: 'Email', value: 'arturo.olmedof@gmail.com' },
+              { icon: Phone, label: 'Phone', value: '+34 634 123 456' },
+              { icon: MapPin, label: 'Location', value: 'Barcelona, Aribau 3 · Remote-first' },
             ].map(({ icon: Icon, label, value }) => (
               <div key={label} className="flex items-start gap-4">
                 <div className="w-10 h-10 bg-primary-600/20 rounded-lg flex items-center justify-center flex-shrink-0 mt-0.5">

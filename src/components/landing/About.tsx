@@ -3,9 +3,9 @@ import { motion } from 'framer-motion';
 import { useTranslation } from 'react-i18next';
 
 const STATS = [
-  { key: 'experience', value: 8, suffix: '+' },
-  { key: 'clients', value: 120, suffix: '+' },
-  { key: 'projects', value: 300, suffix: '+' },
+  { key: 'experience', value: 15, suffix: '+' },
+  { key: 'clients', value: 25, suffix: '+' },
+  { key: 'projects', value: 100, suffix: '+' },
   { key: 'uptime', value: 99.9, suffix: '%' },
 ];
 
@@ -69,10 +69,10 @@ export function About() {
             {/* Bullet points */}
             <div className="mt-8 space-y-3">
               {[
-                'AWS Advanced Consulting Partner',
-                'CNCF Certified Kubernetes practitioners',
-                'ISO 27001 aligned security practices',
-                'Agile & DevOps certified teams',
+                'AWS · Azure · GCP multi-cloud expertise',
+                'Kubernetes, Helm, Docker & SRE practices',
+                'Terraform & CloudFormation — full IaC lifecycle',
+                'Python, Java, Groovy · Data & ML pipelines',
               ].map((item) => (
                 <div key={item} className="flex items-center gap-3">
                   <div className="w-2 h-2 rounded-full bg-accent-400 flex-shrink-0" />

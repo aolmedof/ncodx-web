@@ -7,38 +7,38 @@
     "backHome": "Back to home"
   },
   "hero": {
-    "headline": "We transform your business with",
-    "headlineHighlight": "Cutting-Edge Technology",
-    "subheadline": "Specialized IT consulting in Cloud, DevOps, AI and Cybersecurity. Take your company to the next digital level.",
+    "headline": "Multi-Cloud Infrastructure &",
+    "headlineHighlight": "DevOps Engineering",
+    "subheadline": "Senior Cloud Solutions Architect and DevOps Engineer with 15+ years delivering production-grade infrastructure on AWS, Azure, GCP and Kubernetes. Based in Barcelona.",
     "cta": "Get Started",
     "ctaSecondary": "View Services"
   },
   "services": {
     "title": "Our Services",
-    "subtitle": "Comprehensive technology solutions for companies that want to grow and scale",
+    "subtitle": "Specialized technology solutions from a senior multi-cloud architect with 15+ years of enterprise experience",
     "cloud": {
-      "name": "Cloud Solutions",
-      "desc": "Migration, architecture and optimization on AWS, Azure and GCP. Scalable and secure infrastructure."
+      "name": "Multi-Cloud Architecture",
+      "desc": "Design, migration and optimization across AWS, Azure and GCP. Multi-cloud strategies, cost reduction and highly available infrastructure."
     },
     "devops": {
-      "name": "DevOps",
-      "desc": "CI/CD pipelines, containers, Kubernetes and automation for fast and reliable deliveries."
+      "name": "DevOps & SRE",
+      "desc": "CI/CD pipelines with Jenkins and CodePipeline, container orchestration with Kubernetes and Helm, monitoring with CloudWatch, Dynatrace and X-Ray."
     },
     "software": {
-      "name": "Software Development",
-      "desc": "Custom web and mobile applications with best engineering practices and clean code."
+      "name": "Infrastructure as Code",
+      "desc": "Full infrastructure automation using Terraform and CloudFormation. Repeatable, auditable and version-controlled environments."
     },
     "ai": {
-      "name": "AI & Data",
-      "desc": "LLM integration, machine learning and data pipelines to power intelligent decisions."
+      "name": "Data & ML Engineering",
+      "desc": "Data pipelines, ETL processes, machine learning with PyTorch and KubeFlow, and Big Data integration to turn raw data into decisions."
     },
     "security": {
       "name": "Cybersecurity",
-      "desc": "Audits, pentesting, compliance and zero-trust architectures to protect your organization."
+      "desc": "Zero-trust architectures, compliance frameworks, IAM hardening and security monitoring. PhD-level expertise in Computer Science & CyberSecurity."
     },
     "consulting": {
       "name": "IT Consulting",
-      "desc": "Technology strategy, digital transformation and IT governance aligned with your business goals."
+      "desc": "Technology strategy, digital transformation and Agile/Scrum delivery for enterprise and scale-up environments. Java, Python, Groovy, SQL."
     }
   },
   "caseStudies": {
@@ -65,8 +65,8 @@
   },
   "about": {
     "title": "About NCODX",
-    "subtitle": "A team of engineers passionate about technology and real business impact",
-    "description": "NCODX was born with the mission of democratizing access to enterprise-level technology. We combine Big Tech experience with a startup mindset to deliver solutions that truly work.",
+    "subtitle": "Senior Multi-Cloud Engineer & Data Specialist — Arturo O. Flores",
+    "description": "NCODX is led by Arturo O. Flores, a Full Stack DevOps and Cloud Solutions Architect with over 15 years of enterprise experience across FinTech (Equifax), FMCG (Mondelez), and global tech companies. Master's in Computer Science (IPN), Engineer in Electronics (IPN), PhD candidate in Computer Science & CyberSecurity (Lviv Polytechnic). Fluent in Spanish and English.",
     "stats": {
       "experience": "Years of Experience",
       "clients": "Satisfied Clients",

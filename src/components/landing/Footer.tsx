@@ -1,6 +1,6 @@
 import { Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import { Zap, Github, Twitter, Linkedin } from 'lucide-react';
+import { Zap, Github, Linkedin } from 'lucide-react';
 
 export function Footer() {
   const { t } = useTranslation();
@@ -27,9 +27,8 @@ export function Footer() {
             </p>
             <div className="flex gap-3 mt-5">
               {[
-                { icon: Github, href: '#' },
-                { icon: Twitter, href: '#' },
-                { icon: Linkedin, href: '#' },
+                { icon: Github, href: 'https://github.com/aolmedof' },
+                { icon: Linkedin, href: 'https://www.linkedin.com/in/arturo-olmedo-flores/' },
               ].map(({ icon: Icon, href }) => (
                 <a
                   key={href}

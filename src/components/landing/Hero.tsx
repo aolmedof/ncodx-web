@@ -93,7 +93,7 @@ export function Hero() {
           transition={{ duration: 1, delay: 0.8 }}
           className="flex flex-wrap gap-2 justify-center mt-16"
         >
-          {['AWS', 'Kubernetes', 'Terraform', 'React', 'Python', 'LLM'].map((tech) => (
+          {['AWS', 'Azure', 'GCP', 'Kubernetes', 'Terraform', 'Docker', 'Python', 'Java'].map((tech) => (
             <span
               key={tech}
               className="px-3 py-1 bg-slate-800/60 border border-slate-700/50 text-slate-400 text-xs font-mono rounded-md"
