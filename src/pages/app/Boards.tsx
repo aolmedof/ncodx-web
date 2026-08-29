@@ -1,500 +1,287 @@
-import { useState, useMemo } from 'react';
+import { useMemo, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import {
-  DndContext,
-  type DragEndEvent,
-  type DragStartEvent,
-  DragOverlay,
-  PointerSensor,
-  useSensor,
-  useSensors,
-  closestCenter,
-  useDroppable,
+  DndContext, DragOverlay, PointerSensor, useDraggable, useDroppable,
+  useSensor, useSensors, type DragEndEvent, type DragStartEvent,
 } from '@dnd-kit/core';
+import { Plus, Trash2 } from 'lucide-react';
+import { useQueryClient } from '@tanstack/react-query';
 import {
-  SortableContext,
-  useSortable,
-  verticalListSortingStrategy,
-} from '@dnd-kit/sortable';
-import { CSS } from '@dnd-kit/utilities';
-import { Search, Filter, Plus, X, GripVertical, CalendarDays, User } from 'lucide-react';
-import { mockTasks, mockProjects } from '@/lib/mock-data';
-import type { Task, TaskStatus, TaskPriority } from '@/types';
+  Badge, Button, ErrorState, Field, Input, Modal, PageHeader, PageShell,
+  Select, Skeleton, Textarea, cn, type Tone,
+} from '@/components/ui';
+import { tasksResource, useTasks } from '@/hooks/queries';
+import { formatDateShort } from '@/lib/format';
+import type { Task, TaskPriority, TaskStatus } from '@/types';
 
-// ── Types ──────────────────────────────────────────────────────────────────────
-
-interface Column {
-  key: TaskStatus;
-  label: string;
-  topColor: string;
-  countColor: string;
-}
-
-// ── Constants ──────────────────────────────────────────────────────────────────
-
-const COLUMNS: Column[] = [
-  { key: 'todo',        label: 'Todo',        topColor: 'border-t-slate-500',   countColor: 'bg-slate-700 text-slate-300' },
-  { key: 'in_progress', label: 'In Progress', topColor: 'border-t-blue-500',    countColor: 'bg-blue-900/50 text-blue-300' },
-  { key: 'review',      label: 'Review',      topColor: 'border-t-yellow-500',  countColor: 'bg-yellow-900/50 text-yellow-300' },
-  { key: 'done',        label: 'Done',        topColor: 'border-t-signal-green',countColor: 'bg-signal-green/10 text-signal-green' },
+const COLUMNS: Array<{ id: TaskStatus; label: string; accent: string }> = [
+  { id: 'todo',        label: 'To do',       accent: 'var(--color-stage-1)' },
+  { id: 'in_progress', label: 'In progress', accent: 'var(--color-stage-2)' },
+  { id: 'review',      label: 'In review',   accent: 'var(--color-stage-3)' },
+  { id: 'done',        label: 'Done',        accent: 'var(--color-stage-4)' },
 ];
 
-const PRIORITY_STRIPE: Record<TaskPriority, string> = {
-  urgent: 'bg-red-500',
-  high:   'bg-orange-400',
-  medium: 'bg-yellow-400',
-  low:    'bg-slate-500',
+const PRIORITY_TONE: Record<TaskPriority, Tone> = {
+  urgent: 'critical', high: 'caution', medium: 'info', low: 'neutral',
 };
 
-const PRIORITY_BADGE: Record<TaskPriority, string> = {
-  urgent: 'bg-red-500/10 text-red-400 border border-red-500/30',
-  high:   'bg-orange-500/10 text-orange-400 border border-orange-500/30',
-  medium: 'bg-yellow-500/10 text-yellow-400 border border-yellow-500/30',
-  low:    'bg-slate-500/10 text-slate-400 border border-slate-500/30',
-};
-
-// ── Helpers ────────────────────────────────────────────────────────────────────
-
-function getInitials(name?: string): string {
-  if (!name) return '?';
-  return name
-    .split(/[\s.@]+/)
-    .filter(Boolean)
-    .slice(0, 2)
-    .map((s) => s[0].toUpperCase())
-    .join('');
-}
-
-function formatDueDate(date?: string): string | null {
-  if (!date) return null;
-  const d = new Date(date);
-  return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
-}
-
-function isDueSoon(date?: string): boolean {
-  if (!date) return false;
-  const diff = new Date(date).getTime() - Date.now();
-  return diff >= 0 && diff < 3 * 24 * 60 * 60 * 1000;
-}
-
-function isOverdue(date?: string): boolean {
-  if (!date) return false;
-  return new Date(date).getTime() < Date.now();
-}
-
-// ── Task Card ──────────────────────────────────────────────────────────────────
-
-function TaskCard({
-  task,
-  dragListeners,
-  isDragging,
-}: {
-  task: Task;
-  dragListeners?: Record<string, unknown>;
-  isDragging?: boolean;
-}) {
-  const formattedDate = formatDueDate(task.dueDate);
-  const soon = isDueSoon(task.dueDate);
-  const overdue = isOverdue(task.dueDate);
-
-  const dateColor = overdue
-    ? 'text-red-400'
-    : soon
-    ? 'text-yellow-400'
-    : 'text-signal-text-muted';
-
+function TaskCard({ task, dragging = false }: { task: Task; dragging?: boolean }) {
   return (
     <div
-      className={`relative bg-signal-card border rounded-xl overflow-hidden transition-all select-none ${
-        isDragging
-          ? 'opacity-40 scale-95 border-signal-green/50 shadow-signal-card'
-          : 'border-signal-border hover:border-signal-border-bright'
-      }`}
+      className={cn(
+        'rounded-md border border-line bg-card p-3 transition-colors',
+        dragging ? 'rotate-1 border-brand-line shadow-popover' : 'hover:border-line-strong',
+      )}
     >
-      {/* Priority left stripe */}
-      <div className={`absolute left-0 top-0 bottom-0 w-1 ${PRIORITY_STRIPE[task.priority]}`} />
-
-      <div className="pl-4 pr-3 py-3">
-        {/* Drag handle + priority badge */}
-        <div className="flex items-center justify-between mb-2">
-          <span className={`text-xs px-1.5 py-0.5 rounded font-medium capitalize ${PRIORITY_BADGE[task.priority]}`}>
-            {task.priority}
-          </span>
-          <div
-            {...dragListeners}
-            className="cursor-grab active:cursor-grabbing text-signal-text-muted hover:text-signal-text transition-colors"
-          >
-            <GripVertical size={14} />
-          </div>
-        </div>
-
-        {/* Title */}
-        <p className="text-signal-text text-sm font-medium leading-snug mb-2">{task.title}</p>
-
-        {/* Tags */}
-        {task.tags.length > 0 && (
-          <div className="flex flex-wrap gap-1 mb-2">
-            {task.tags.slice(0, 3).map((tag) => (
-              <span
-                key={tag}
-                className="text-xs px-1.5 py-0.5 rounded bg-signal-surface text-signal-text-dim border border-signal-border"
-              >
-                {tag}
-              </span>
-            ))}
-          </div>
+      <p className="text-[13px] leading-snug text-ink">{task.title}</p>
+      {task.description && (
+        <p className="mt-1 line-clamp-2 text-[12px] leading-relaxed text-ink-faint">
+          {task.description}
+        </p>
+      )}
+      <div className="mt-2.5 flex items-center gap-2">
+        <Badge tone={PRIORITY_TONE[task.priority]}>{task.priority}</Badge>
+        {task.dueDate && (
+          <span className="text-[12px] text-ink-faint">{formatDateShort(task.dueDate)}</span>
         )}
-
-        {/* Footer: assignee + due date */}
-        <div className="flex items-center justify-between mt-1">
-          {task.assignee ? (
-            <div
-              className="w-6 h-6 rounded-full flex items-center justify-center text-signal-bg text-xs font-bold shrink-0"
-              style={{ backgroundColor: task.projectColor }}
-              title={task.assignee}
-            >
-              {getInitials(task.assignee)}
-            </div>
-          ) : (
-            <div className="w-6 h-6 rounded-full border border-signal-border flex items-center justify-center">
-              <User size={10} className="text-signal-text-muted" />
-            </div>
-          )}
-
-          {formattedDate && (
-            <div className={`flex items-center gap-1 text-xs ${dateColor}`}>
-              <CalendarDays size={11} />
-              <span>{formattedDate}</span>
-            </div>
-          )}
-        </div>
       </div>
     </div>
   );
 }
 
-// ── Sortable Task Card ─────────────────────────────────────────────────────────
-
-function SortableTaskCard({ task }: { task: Task }) {
-  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: task.id });
-  const style = { transform: CSS.Transform.toString(transform), transition };
-  return (
-    <div ref={setNodeRef} style={style} {...attributes}>
-      <TaskCard task={task} dragListeners={listeners} isDragging={isDragging} />
-    </div>
-  );
-}
-
-// ── Add Task Inline Form ───────────────────────────────────────────────────────
-
-interface AddTaskFormProps {
-  status: TaskStatus;
-  projectId: string;
-  projectName: string;
-  projectColor: string;
-  onAdd: (task: Task) => void;
-  onCancel: () => void;
-}
-
-function AddTaskForm({ status, projectId, projectName, projectColor, onAdd, onCancel }: AddTaskFormProps) {
-  const [title, setTitle] = useState('');
-  const [priority, setPriority] = useState<TaskPriority>('medium');
-
-  function handleSubmit() {
-    if (!title.trim()) return;
-    const now = new Date().toISOString();
-    onAdd({
-      id: `t-${Date.now()}`,
-      title: title.trim(),
-      description: '',
-      status,
-      priority,
-      projectId,
-      projectName,
-      projectColor,
-      tags: [],
-      createdAt: now,
-      updatedAt: now,
-    });
-    setTitle('');
-  }
+function DraggableTask({ task, onDelete }: { task: Task; onDelete: (id: string) => void }) {
+  const { attributes, listeners, setNodeRef, isDragging } = useDraggable({ id: task.id });
 
   return (
-    <div className="bg-signal-surface border border-signal-green/30 rounded-xl p-3 space-y-2">
-      <input
-        autoFocus
-        type="text"
-        placeholder="Task title..."
-        value={title}
-        onChange={(e) => setTitle(e.target.value)}
-        onKeyDown={(e) => {
-          if (e.key === 'Enter') handleSubmit();
-          if (e.key === 'Escape') onCancel();
-        }}
-        className="w-full bg-signal-card border border-signal-border rounded-lg px-3 py-1.5 text-sm text-signal-text placeholder-signal-text-muted focus:outline-hidden focus:border-signal-green transition-colors"
-      />
-      <select
-        value={priority}
-        onChange={(e) => setPriority(e.target.value as TaskPriority)}
-        className="w-full bg-signal-card border border-signal-border rounded-lg px-3 py-1.5 text-xs text-signal-text focus:outline-hidden focus:border-signal-green transition-colors"
+    <div ref={setNodeRef} className={cn('group relative', isDragging && 'opacity-40')}>
+      <div
+        {...listeners}
+        {...attributes}
+        className="cursor-grab active:cursor-grabbing"
+        aria-label={`Drag ${task.title}`}
       >
-        <option value="low">Low Priority</option>
-        <option value="medium">Medium Priority</option>
-        <option value="high">High Priority</option>
-        <option value="urgent">Urgent</option>
-      </select>
-      <div className="flex gap-2">
+        <TaskCard task={task} />
+      </div>
+      <button
+        onClick={() => onDelete(task.id)}
+        aria-label={`Delete ${task.title}`}
+        className={
+          'absolute right-1.5 top-1.5 rounded p-1 text-ink-faint opacity-0 transition ' +
+          'hover:bg-critical-soft hover:text-critical group-hover:opacity-100'
+        }
+      >
+        <Trash2 size={13} />
+      </button>
+    </div>
+  );
+}
+
+function Column({
+  column, tasks, onDelete, onAdd,
+}: {
+  column: (typeof COLUMNS)[number];
+  tasks: Task[];
+  onDelete: (id: string) => void;
+  onAdd: (status: TaskStatus) => void;
+}) {
+  const { setNodeRef, isOver } = useDroppable({ id: column.id });
+
+  return (
+    <div className="flex min-w-[268px] flex-1 flex-col">
+      <div className="mb-2 flex items-center gap-2 px-1">
+        <span aria-hidden className="h-2 w-2 rounded-[2px]" style={{ backgroundColor: column.accent }} />
+        <span className="text-[13px] font-medium text-ink">{column.label}</span>
+        <span className="rounded-full bg-raised px-1.5 text-[12px] text-ink-faint tabular">
+          {tasks.length}
+        </span>
         <button
-          onClick={handleSubmit}
-          className="flex-1 bg-signal-green text-signal-bg font-semibold text-xs py-1.5 rounded-lg hover:bg-signal-green/90 transition-colors"
+          onClick={() => onAdd(column.id)}
+          aria-label={`Add task to ${column.label}`}
+          className="ml-auto rounded p-1 text-ink-faint transition-colors hover:bg-raised hover:text-ink"
         >
-          Add Task
+          <Plus size={14} />
         </button>
-        <button
-          onClick={onCancel}
-          className="p-1.5 text-signal-text-muted hover:text-signal-text transition-colors"
-        >
-          <X size={14} />
-        </button>
+      </div>
+
+      <div
+        ref={setNodeRef}
+        className={cn(
+          'flex min-h-40 flex-1 flex-col gap-2 rounded-lg border border-dashed p-2 transition-colors',
+          isOver ? 'border-brand-line bg-brand-soft' : 'border-line bg-surface/40',
+        )}
+      >
+        {tasks.map((task) => (
+          <DraggableTask key={task.id} task={task} onDelete={onDelete} />
+        ))}
+        {tasks.length === 0 && (
+          <p className="px-1 py-6 text-center text-[12px] text-ink-faint">
+            Drop tasks here
+          </p>
+        )}
       </div>
     </div>
   );
 }
-
-// ── Droppable Column ───────────────────────────────────────────────────────────
-
-function DroppableColumn({ id, children }: { id: string; children: React.ReactNode }) {
-  const { setNodeRef, isOver } = useDroppable({ id });
-  return (
-    <div
-      ref={setNodeRef}
-      className={`min-h-[200px] space-y-2 p-2 rounded-lg transition-colors ${
-        isOver ? 'bg-signal-green/5' : ''
-      }`}
-    >
-      {children}
-    </div>
-  );
-}
-
-// ── Boards Page ────────────────────────────────────────────────────────────────
 
 export default function Boards() {
   const { projectId } = useParams<{ projectId: string }>();
+  const qc = useQueryClient();
+  const { data, isPending, isError, error, refetch } = useTasks({ project_id: projectId });
+  const updateTask = tasksResource.useUpdate();
+  const createTask = tasksResource.useCreate();
+  const removeTask = tasksResource.useRemove();
 
-  const project = mockProjects.find((p) => p.id === projectId);
+  const [activeId, setActiveId] = useState<string | null>(null);
+  const [composing, setComposing] = useState<TaskStatus | null>(null);
+  const [form, setForm] = useState({ title: '', description: '', priority: 'medium' as TaskPriority });
 
-  const [tasks, setTasks] = useState<Task[]>(() =>
-    mockTasks.filter((t) => t.projectId === projectId)
-  );
-  const [activeTask, setActiveTask] = useState<Task | null>(null);
-  const [addingTo, setAddingTo] = useState<TaskStatus | null>(null);
-  const [search, setSearch] = useState('');
-  const [priorityFilter, setPriorityFilter] = useState<TaskPriority | 'all'>('all');
-  const [assigneeFilter, setAssigneeFilter] = useState<string>('all');
+  // A small drag threshold keeps the delete button clickable.
+  const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 4 } }));
 
-  const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 5 } }));
-
-  const assignees = useMemo(() => {
-    const names = tasks.map((t) => t.assignee).filter(Boolean) as string[];
-    return Array.from(new Set(names));
+  const tasks = useMemo(() => data ?? [], [data]);
+  const byStatus = useMemo(() => {
+    const groups = new Map<TaskStatus, Task[]>(COLUMNS.map((c) => [c.id, []]));
+    for (const task of tasks) groups.get(task.status)?.push(task);
+    for (const list of groups.values()) list.sort((a, b) => a.position - b.position);
+    return groups;
   }, [tasks]);
 
-  const filteredTasks = useMemo(() => {
-    return tasks.filter((t) => {
-      const matchSearch =
-        search === '' ||
-        t.title.toLowerCase().includes(search.toLowerCase()) ||
-        t.tags.some((tag) => tag.toLowerCase().includes(search.toLowerCase()));
-      const matchPriority = priorityFilter === 'all' || t.priority === priorityFilter;
-      const matchAssignee =
-        assigneeFilter === 'all' ||
-        (assigneeFilter === 'unassigned' ? !t.assignee : t.assignee === assigneeFilter);
-      return matchSearch && matchPriority && matchAssignee;
-    });
-  }, [tasks, search, priorityFilter, assigneeFilter]);
+  const activeTask = activeId ? tasks.find((t) => t.id === activeId) : null;
 
-  function handleDragStart(e: DragStartEvent) {
-    const task = tasks.find((t) => t.id === e.active.id);
-    setActiveTask(task ?? null);
-  }
+  function handleDragEnd(event: DragEndEvent) {
+    setActiveId(null);
+    const taskId = String(event.active.id);
+    const target = event.over?.id as TaskStatus | undefined;
+    const task = tasks.find((t) => t.id === taskId);
+    if (!target || !task || task.status === target) return;
 
-  function handleDragEnd(e: DragEndEvent) {
-    const { active, over } = e;
-    setActiveTask(null);
-    if (!over) return;
-
-    const taskId = active.id as string;
-    const overId = over.id as string;
-    const isColumn = COLUMNS.some((c) => c.key === overId);
-
-    if (isColumn) {
-      setTasks((prev) =>
-        prev.map((t) =>
-          t.id === taskId ? { ...t, status: overId as TaskStatus, updatedAt: new Date().toISOString() } : t
-        )
-      );
-    } else {
-      const overTask = tasks.find((t) => t.id === overId);
-      if (overTask) {
-        const draggedTask = tasks.find((t) => t.id === taskId);
-        if (draggedTask && draggedTask.status !== overTask.status) {
-          setTasks((prev) =>
-            prev.map((t) =>
-              t.id === taskId
-                ? { ...t, status: overTask.status, updatedAt: new Date().toISOString() }
-                : t
-            )
-          );
-        }
-      }
-    }
-  }
-
-  function handleAddTask(newTask: Task) {
-    setTasks((prev) => [...prev, newTask]);
-    setAddingTo(null);
-  }
-
-  if (!project) {
-    return (
-      <div className="min-h-screen bg-signal-bg flex items-center justify-center text-signal-text-muted font-mono">
-        Project not found.
-      </div>
+    // Optimistic: the card lands in the new column immediately, and the
+    // resource-wide invalidation on settle reconciles with the server.
+    qc.setQueryData<Task[]>(['tasks', 'list', { project_id: projectId }], (prev) =>
+      prev?.map((t) => (t.id === taskId ? { ...t, status: target } : t)),
     );
+    updateTask.mutate({ id: taskId, status: target });
+  }
+
+  async function handleCreate(e: React.FormEvent) {
+    e.preventDefault();
+    if (!form.title.trim() || !composing) return;
+    await createTask.mutateAsync({
+      title: form.title.trim(),
+      description: form.description.trim() || null,
+      status: composing,
+      priority: form.priority,
+      projectId: projectId ?? null,
+      position: byStatus.get(composing)?.length ?? 0,
+    });
+    setComposing(null);
+    setForm({ title: '', description: '', priority: 'medium' });
   }
 
   return (
-    <div className="min-h-screen bg-signal-bg text-signal-text font-mono flex flex-col">
-      {/* Page header */}
-      <div className="px-6 pt-6 pb-4 border-b border-signal-border">
-        <div className="flex items-center gap-2 mb-4">
-          <div className="w-3 h-3 rounded-full" style={{ backgroundColor: project.color }} />
-          <h1 className="text-lg font-bold text-signal-text">{project.name}</h1>
-          <span className="text-signal-text-muted text-sm">/</span>
-          <span className="text-signal-text-dim text-sm">Boards</span>
+    <PageShell>
+      <PageHeader
+        title="Board"
+        description="Drag a card to move it between columns."
+        actions={
+          <Button variant="primary" onClick={() => setComposing('todo')}>
+            <Plus size={15} />
+            New task
+          </Button>
+        }
+      />
+
+      {isPending ? (
+        <div className="mt-5 flex gap-3 overflow-x-auto">
+          {COLUMNS.map((c) => <Skeleton key={c.id} className="h-72 min-w-[268px] flex-1" />)}
         </div>
-
-        {/* Filter bar */}
-        <div className="flex flex-wrap gap-3">
-          {/* Search */}
-          <div className="relative flex-1 min-w-[200px]">
-            <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-signal-text-muted" />
-            <input
-              type="text"
-              placeholder="Search tasks or tags..."
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              className="w-full bg-signal-surface border border-signal-border rounded-lg pl-8 pr-3 py-2 text-sm text-signal-text placeholder-signal-text-muted focus:outline-hidden focus:border-signal-green transition-colors"
-            />
-          </div>
-
-          {/* Priority filter */}
-          <div className="relative">
-            <Filter size={13} className="absolute left-3 top-1/2 -translate-y-1/2 text-signal-text-muted" />
-            <select
-              value={priorityFilter}
-              onChange={(e) => setPriorityFilter(e.target.value as TaskPriority | 'all')}
-              className="bg-signal-surface border border-signal-border rounded-lg pl-8 pr-3 py-2 text-sm text-signal-text focus:outline-hidden focus:border-signal-green transition-colors appearance-none cursor-pointer"
-            >
-              <option value="all">All Priorities</option>
-              <option value="urgent">Urgent</option>
-              <option value="high">High</option>
-              <option value="medium">Medium</option>
-              <option value="low">Low</option>
-            </select>
-          </div>
-
-          {/* Assignee filter */}
-          <select
-            value={assigneeFilter}
-            onChange={(e) => setAssigneeFilter(e.target.value)}
-            className="bg-signal-surface border border-signal-border rounded-lg px-3 py-2 text-sm text-signal-text focus:outline-hidden focus:border-signal-green transition-colors appearance-none cursor-pointer"
-          >
-            <option value="all">All Assignees</option>
-            <option value="unassigned">Unassigned</option>
-            {assignees.map((a) => (
-              <option key={a} value={a}>{a}</option>
-            ))}
-          </select>
-        </div>
-      </div>
-
-      {/* Kanban board */}
-      <div className="flex-1 overflow-x-auto p-6">
+      ) : isError ? (
+        <ErrorState
+          className="mt-6"
+          message={error instanceof Error ? error.message : undefined}
+          onRetry={() => refetch()}
+        />
+      ) : (
         <DndContext
           sensors={sensors}
-          collisionDetection={closestCenter}
-          onDragStart={handleDragStart}
+          onDragStart={(e: DragStartEvent) => setActiveId(String(e.active.id))}
           onDragEnd={handleDragEnd}
+          onDragCancel={() => setActiveId(null)}
         >
-          <div className="flex gap-4 min-w-max">
-            {COLUMNS.map((col) => {
-              const colTasks = filteredTasks.filter((t) => t.status === col.key);
-              return (
-                <div key={col.key} className="w-72 flex flex-col">
-                  <div
-                    className={`bg-signal-card border border-signal-border rounded-xl overflow-hidden border-t-2 ${col.topColor} flex flex-col flex-1`}
-                  >
-                    {/* Column header */}
-                    <div className="flex items-center justify-between px-4 py-3 border-b border-signal-border">
-                      <div className="flex items-center gap-2">
-                        <span className="text-signal-text text-sm font-semibold">{col.label}</span>
-                        <span className={`text-xs px-1.5 py-0.5 rounded-md font-medium ${col.countColor}`}>
-                          {colTasks.length}
-                        </span>
-                      </div>
-                      <button
-                        onClick={() => setAddingTo(col.key)}
-                        className="text-signal-text-muted hover:text-signal-green transition-colors"
-                        title={`Add task to ${col.label}`}
-                      >
-                        <Plus size={15} />
-                      </button>
-                    </div>
-
-                    {/* Sortable area + droppable */}
-                    <SortableContext
-                      items={colTasks.map((t) => t.id)}
-                      strategy={verticalListSortingStrategy}
-                    >
-                      <DroppableColumn id={col.key}>
-                        {colTasks.map((task) => (
-                          <SortableTaskCard key={task.id} task={task} />
-                        ))}
-
-                        {/* Add task inline form */}
-                        {addingTo === col.key && (
-                          <AddTaskForm
-                            status={col.key}
-                            projectId={project.id}
-                            projectName={project.name}
-                            projectColor={project.color}
-                            onAdd={handleAddTask}
-                            onCancel={() => setAddingTo(null)}
-                          />
-                        )}
-
-                        {/* Empty state */}
-                        {colTasks.length === 0 && addingTo !== col.key && (
-                          <div className="flex items-center justify-center h-16 text-signal-text-muted text-xs border border-dashed border-signal-border rounded-lg">
-                            Drop tasks here
-                          </div>
-                        )}
-                      </DroppableColumn>
-                    </SortableContext>
-                  </div>
-                </div>
-              );
-            })}
+          <div className="mt-5 flex gap-3 overflow-x-auto pb-4">
+            {COLUMNS.map((column) => (
+              <Column
+                key={column.id}
+                column={column}
+                tasks={byStatus.get(column.id) ?? []}
+                onDelete={(id) => removeTask.mutate(id)}
+                onAdd={setComposing}
+              />
+            ))}
           </div>
 
-          {/* Drag overlay */}
-          <DragOverlay>
-            {activeTask ? <TaskCard task={activeTask} isDragging={false} /> : null}
+          <DragOverlay dropAnimation={null}>
+            {activeTask ? (
+              <div className="w-[252px] cursor-grabbing">
+                <TaskCard task={activeTask} dragging />
+              </div>
+            ) : null}
           </DragOverlay>
         </DndContext>
-      </div>
-    </div>
+      )}
+
+      <Modal
+        open={composing !== null}
+        onClose={() => setComposing(null)}
+        title="New task"
+        description={composing ? `Adds to ${COLUMNS.find((c) => c.id === composing)?.label}.` : undefined}
+        footer={
+          <>
+            <Button onClick={() => setComposing(null)}>Cancel</Button>
+            <Button
+              variant="primary"
+              type="submit"
+              form="new-task"
+              loading={createTask.isPending}
+              disabled={!form.title.trim()}
+            >
+              Add task
+            </Button>
+          </>
+        }
+      >
+        <form id="new-task" onSubmit={handleCreate} className="space-y-4">
+          <Field label="Title" required htmlFor="nt-title">
+            <Input
+              id="nt-title"
+              autoFocus
+              value={form.title}
+              onChange={(e) => setForm({ ...form, title: e.target.value })}
+              placeholder="Wire up the payments endpoint"
+            />
+          </Field>
+          <Field label="Description" htmlFor="nt-desc">
+            <Textarea
+              id="nt-desc"
+              rows={3}
+              value={form.description}
+              onChange={(e) => setForm({ ...form, description: e.target.value })}
+            />
+          </Field>
+          <Field label="Priority" htmlFor="nt-priority">
+            <Select
+              id="nt-priority"
+              value={form.priority}
+              onChange={(e) => setForm({ ...form, priority: e.target.value as TaskPriority })}
+            >
+              <option value="low">Low</option>
+              <option value="medium">Medium</option>
+              <option value="high">High</option>
+              <option value="urgent">Urgent</option>
+            </Select>
+          </Field>
+        </form>
+      </Modal>
+    </PageShell>
   );
 }

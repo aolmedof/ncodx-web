@@ -1,26 +1,43 @@
 import { useState } from 'react';
-import { Outlet, useParams } from 'react-router-dom';
+import { Navigate, Outlet, useParams } from 'react-router-dom';
 import { ProjectSidebar } from '@/components/app/ProjectSidebar';
-import { GlobalTopbar } from '@/components/app/GlobalTopbar';
-import { mockProjects } from '@/lib/mock-data';
+import { LoadingSpinner } from '@/components/common/LoadingSpinner';
+import { ErrorState } from '@/components/ui';
+import { useProject } from '@/hooks/queries';
 
+/**
+ * Renders inside AppLayout, which already owns the topbar and the scroll
+ * container — so this adds the sidebar only. The sidebar sticks while the
+ * page content scrolls beneath the topbar.
+ */
 export function ProjectLayout() {
   const { projectId } = useParams<{ projectId: string }>();
   const [collapsed, setCollapsed] = useState(false);
-  const project = mockProjects.find((p) => p.id === projectId) ?? mockProjects[0];
+  const { data: project, isPending, isError, error, refetch } = useProject(projectId);
+
+  if (!projectId) return <Navigate to="/app" replace />;
 
   return (
-    <div className="flex flex-col min-h-screen bg-signal-bg font-mono text-signal-text">
-      <GlobalTopbar />
-      <div className="flex flex-1 overflow-hidden">
-        <ProjectSidebar
-          project={project}
-          collapsed={collapsed}
-          onToggle={() => setCollapsed(!collapsed)}
-        />
-        <main className="flex-1 overflow-auto min-w-0">
+    <div className="flex min-h-full items-start">
+      <ProjectSidebar
+        project={project}
+        loading={isPending}
+        collapsed={collapsed}
+        onToggle={() => setCollapsed((c) => !c)}
+      />
+      <div className="min-w-0 flex-1">
+        {isPending ? (
+          <LoadingSpinner size="lg" className="py-24" />
+        ) : isError ? (
+          <ErrorState
+            title="Could not load this project"
+            message={error instanceof Error ? error.message : undefined}
+            onRetry={() => refetch()}
+            className="py-24"
+          />
+        ) : (
           <Outlet />
-        </main>
+        )}
       </div>
     </div>
   );

@@ -1,52 +1,181 @@
-@config "../tailwind.config.js";
 @import "tailwindcss";
 
+/* ==========================================================================
+   NCODX design tokens
+   Refined dark surface stack with a single green brand accent.
+   Neutrals are very slightly cool so the green reads as the only hue on the
+   page; every step is a real perceptual jump so elevation is visible without
+   relying on shadows.
+   ========================================================================== */
+@theme {
+  /* Surface stack, darkest to lightest */
+  --color-canvas:      #08090a;
+  --color-surface:     #0d0e10;
+  --color-card:        #131417;
+  --color-raised:      #1a1c1f;
+  --color-overlay:     #1f2125;
+
+  /* Hairlines */
+  --color-line:        #212328;
+  --color-line-strong: #2d2f35;
+
+  /* Type */
+  --color-ink:         #f4f5f6;
+  --color-ink-dim:     #9ea3ab;
+  --color-ink-faint:   #676c74;
+
+  /* Brand — the only saturated hue in the chrome */
+  --color-brand:       #3ecf8e;
+  --color-brand-hover: #48ddaa;
+  --color-brand-press: #32b579;
+  --color-brand-soft:  color-mix(in oklab, #3ecf8e 12%, transparent);
+  --color-brand-line:  color-mix(in oklab, #3ecf8e 28%, transparent);
+  --color-brand-ink:   #06281a;
+
+  /* Semantic status */
+  --color-positive:      #3ecf8e;
+  --color-positive-soft: color-mix(in oklab, #3ecf8e 12%, transparent);
+  --color-caution:       #e3b341;
+  --color-caution-soft:  color-mix(in oklab, #e3b341 12%, transparent);
+  --color-critical:      #f2666b;
+  --color-critical-soft: color-mix(in oklab, #f2666b 12%, transparent);
+  --color-info:          #58a6ff;
+  --color-info-soft:     color-mix(in oklab, #58a6ff 12%, transparent);
+  --color-neutral-soft:  color-mix(in oklab, #9ea3ab 10%, transparent);
+
+  /* Typography — Inter for UI, mono reserved for code, IDs and figures */
+  --font-sans: "Inter", ui-sans-serif, system-ui, -apple-system, sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, "Fira Code", monospace;
+
+  /* Radii */
+  --radius-xs:  4px;
+  --radius-sm:  6px;
+  --radius-md:  8px;
+  --radius-lg:  12px;
+  --radius-xl:  16px;
+
+  /* Elevation — soft and low-contrast; borders do most of the work */
+  --shadow-panel:   0 1px 2px rgba(0,0,0,.4);
+  --shadow-popover: 0 8px 28px -6px rgba(0,0,0,.7), 0 2px 8px rgba(0,0,0,.4);
+  --shadow-modal:   0 24px 64px -12px rgba(0,0,0,.8);
+
+  /* Motion */
+  --animate-fade-up: fadeUp .22s cubic-bezier(.16,1,.3,1);
+  --animate-fade-in: fadeIn .16s ease-out;
+  --animate-shimmer: shimmer 1.6s ease-in-out infinite;
+  --animate-spin-slow: spin .8s linear infinite;
+
+  /* ---- Data visualization ---------------------------------------------
+     Categorical trio = reference dark slots 1-3. Validated all-pairs against
+     the card surface #131417: worst CVD dE 9.4, normal-vision 20.9, all >=3:1.
+     Do not extend past three without re-running the validator.            */
+  --color-viz-1: #3987e5;
+  --color-viz-2: #d95926;
+  --color-viz-3: #199e70;
+
+  /* Ordered workflow ramp, todo -> in_progress -> review -> done.
+     Single hue, monotone lightness, validated with --ordinal on #131417
+     (light end 2.36:1). Task status is a progression, not an identity, so it
+     gets a ramp rather than four competing hues.                          */
+  --color-stage-1: #245c46;
+  --color-stage-2: #2d8a63;
+  --color-stage-3: #35b077;
+  --color-stage-4: #3ecf8e;
+
+  /* Chart chrome — recessive by design */
+  --color-grid: #1e2024;
+  --color-axis: #2d2f35;
+
+}
+
+@keyframes fadeUp {
+  from { opacity: 0; transform: translateY(6px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+@keyframes shimmer {
+  0%, 100% { opacity: .45; }
+  50%      { opacity: .85; }
+}
+
 @layer base {
-  * {
-    box-sizing: border-box;
-    margin: 0;
-    padding: 0;
-  }
+  *, *::before, *::after { box-sizing: border-box; }
+  * { margin: 0; padding: 0; }
+
+  html { color-scheme: dark; }
 
   body {
-    font-family: 'Inter', system-ui, -apple-system, sans-serif;
+    font-family: var(--font-sans);
+    font-size: 14px;
+    line-height: 1.55;
+    background-color: var(--color-canvas);
+    color: var(--color-ink);
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
-    background-color: #020617;
-    color: #f8fafc;
+    font-feature-settings: "cv02","cv03","cv04","cv11";
   }
 
-  a {
-    text-decoration: none;
-    color: inherit;
-  }
+  /* Tabular figures wherever numbers are compared in a column */
+  .tabular, table, .font-mono { font-variant-numeric: tabular-nums; }
+
+  h1, h2, h3, h4 { font-weight: 600; letter-spacing: -0.011em; color: var(--color-ink); }
+  h1 { font-size: 1.5rem;   line-height: 1.25; letter-spacing: -0.02em; }
+  h2 { font-size: 1.125rem; line-height: 1.35; letter-spacing: -0.015em; }
+  h3 { font-size: 0.9375rem; line-height: 1.4; }
+
+  a { text-decoration: none; color: inherit; }
 
   button {
     cursor: pointer;
     border: none;
     background: none;
     font-family: inherit;
+    font-size: inherit;
+    color: inherit;
+  }
+  button:disabled { cursor: not-allowed; }
+
+  input, textarea, select { font-family: inherit; font-size: inherit; color: inherit; }
+  input::placeholder, textarea::placeholder { color: var(--color-ink-faint); }
+
+  /* One consistent focus ring across every interactive element */
+  :focus-visible {
+    outline: 2px solid var(--color-brand);
+    outline-offset: 2px;
+    border-radius: var(--radius-xs);
   }
 
-  input, textarea, select {
-    font-family: inherit;
-  }
+  ::selection { background: color-mix(in oklab, #3ecf8e 30%, transparent); color: #fff; }
 
-  ::-webkit-scrollbar {
-    width: 6px;
-    height: 6px;
-  }
-
-  ::-webkit-scrollbar-track {
-    background: transparent;
-  }
-
+  ::-webkit-scrollbar { width: 10px; height: 10px; }
+  ::-webkit-scrollbar-track { background: transparent; }
   ::-webkit-scrollbar-thumb {
-    background: #334155;
-    border-radius: 3px;
+    background: var(--color-line-strong);
+    border-radius: 6px;
+    border: 3px solid transparent;
+    background-clip: content-box;
   }
+  ::-webkit-scrollbar-thumb:hover { background: #3d4048; background-clip: content-box; }
 
-  ::-webkit-scrollbar-thumb:hover {
-    background: #475569;
+  @media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after {
+      animation-duration: .01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: .01ms !important;
+    }
+  }
+}
+
+@layer components {
+  /* Section label — small caps used above grouped content */
+  .eyebrow {
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: .08em;
+    text-transform: uppercase;
+    color: var(--color-ink-faint);
   }
 }

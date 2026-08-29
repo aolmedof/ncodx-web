@@ -1,194 +1,170 @@
-import { useState } from 'react';
-import { useParams } from 'react-router-dom';
-import { useTranslation } from 'react-i18next';
-import { Key, Eye, EyeOff, Copy, Plus, Trash2, Search, X, Check, Shield } from 'lucide-react';
-import { mockSecrets, mockProjects } from '@/lib/mock-data';
-import type { Secret, SecretCategory } from '@/types';
+import { useMemo, useState } from 'react';
+import { Copy, Eye, EyeOff, KeyRound, Plus, Trash2 } from 'lucide-react';
+import { useQuery } from '@tanstack/react-query';
+import {
+  Badge, Button, Card, CardBody, EmptyState, ErrorState, Field, Input, Modal,
+  PageHeader, PageShell, SearchInput, Skeleton,
+} from '@/components/ui';
+import { api } from '@/lib/api';
+import { secretsResource, useSecrets } from '@/hooks/queries';
+import { formatDate } from '@/lib/format';
+import type { Secret } from '@/types';
 
-const CATEGORY_COLORS: Record<SecretCategory, string> = {
-  api_key: 'text-blue-400 bg-blue-400/10 border-blue-400/20',
-  password: 'text-red-400 bg-red-400/10 border-red-400/20',
-  token: 'text-purple-400 bg-purple-400/10 border-purple-400/20',
-  other: 'text-signal-text-dim bg-signal-card border-signal-border',
-};
-const CATEGORY_LABELS: Record<SecretCategory, string> = {
-  api_key: 'API Key', password: 'Password', token: 'Token', other: 'Other',
-};
-
-export function Secrets() {
-  const { t } = useTranslation();
-  const { projectId } = useParams<{ projectId?: string }>();
-  const project = mockProjects.find((p) => p.id === projectId);
-  const [secrets, setSecrets] = useState<Secret[]>(
-    projectId ? mockSecrets.filter((s) => s.projectId === projectId) : mockSecrets
-  );
-  const [visible, setVisible] = useState<Set<string>>(new Set());
-  const [copied, setCopied] = useState<string | null>(null);
-  const [search, setSearch] = useState('');
-  const [categoryFilter, setCategoryFilter] = useState<SecretCategory | 'all'>('all');
-  const [modalOpen, setModalOpen] = useState(false);
-  const [form, setForm] = useState({ name: '', value: '', category: 'api_key' as SecretCategory, description: '' });
-
-  const toggleVisible = (id: string) => {
-    setVisible((prev) => {
-      const next = new Set(prev);
-      if (next.has(id)) next.delete(id);
-      else next.add(id);
-      return next;
-    });
-  };
-
-  const copyValue = (id: string, value: string) => {
-    navigator.clipboard.writeText(value);
-    setCopied(id);
-    setTimeout(() => setCopied(null), 2000);
-  };
-
-  const deleteSecret = (id: string) => {
-    setSecrets((prev) => prev.filter((s) => s.id !== id));
-  };
-
-  const addSecret = (e: React.FormEvent) => {
-    e.preventDefault();
-    const newSecret: Secret = {
-      id: `sec-${Date.now()}`,
-      ...form,
-      projectId,
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
-    };
-    setSecrets((prev) => [newSecret, ...prev]);
-    setModalOpen(false);
-    setForm({ name: '', value: '', category: 'api_key', description: '' });
-  };
-
-  const filtered = secrets.filter((s) => {
-    const matchesSearch = s.name.toLowerCase().includes(search.toLowerCase()) || (s.description ?? '').toLowerCase().includes(search.toLowerCase());
-    const matchesCategory = categoryFilter === 'all' || s.category === categoryFilter;
-    return matchesSearch && matchesCategory;
+/** The list route redacts `value`; it is fetched per-secret only when revealed. */
+function RevealCell({ id }: { id: string }) {
+  const [shown, setShown] = useState(false);
+  const [copied, setCopied] = useState(false);
+  const { data, isFetching } = useQuery({
+    queryKey: ['secrets', 'detail', id],
+    queryFn: () => api.get<Secret>(`/secrets/${id}`),
+    enabled: shown,
+    staleTime: 0,
+    gcTime: 0,
   });
 
+  async function copy() {
+    if (!data?.value) return;
+    await navigator.clipboard.writeText(data.value);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 1500);
+  }
+
   return (
-    <div className="p-6 bg-signal-bg min-h-full font-mono">
-      {/* Header */}
-      <div className="flex items-center justify-between mb-6">
-        <div>
-          <div className="text-signal-text-muted text-xs tracking-widest mb-1">
-            {project ? `// ${project.name.toUpperCase()}` : '// GLOBAL'} SECRETS
-          </div>
-          <h1 className="text-xl font-bold text-signal-text flex items-center gap-2">
-            <Shield size={18} className="text-signal-green" />
-            {t('secrets.title', 'Secretos')}
-          </h1>
-        </div>
-        <button onClick={() => setModalOpen(true)}
-          className="flex items-center gap-2 px-3 py-2 bg-signal-green hover:bg-signal-green-dim text-signal-bg font-bold text-xs rounded transition-colors">
-          <Plus size={13} />
-          {t('secrets.add', 'Nuevo Secreto')}
-        </button>
-      </div>
-
-      {/* Filters */}
-      <div className="flex gap-3 mb-6 flex-wrap">
-        <div className="relative flex-1 min-w-48">
-          <Search size={13} className="absolute left-3 top-1/2 -translate-y-1/2 text-signal-text-muted" />
-          <input type="text" placeholder={t('app.search', 'Buscar...')} value={search} onChange={(e) => setSearch(e.target.value)}
-            className="w-full pl-8 pr-3 py-2 bg-signal-card border border-signal-border text-signal-text placeholder-signal-text-muted text-xs rounded focus:outline-hidden focus:border-signal-green transition-colors" />
-        </div>
-        <select value={categoryFilter} onChange={(e) => setCategoryFilter(e.target.value as SecretCategory | 'all')}
-          className="bg-signal-card border border-signal-border text-signal-text-dim text-xs rounded px-3 py-2 focus:outline-hidden focus:border-signal-green transition-colors">
-          <option value="all">{t('secrets.allCategories', 'Todas las categorías')}</option>
-          {(Object.keys(CATEGORY_LABELS) as SecretCategory[]).map((cat) => (
-            <option key={cat} value={cat}>{CATEGORY_LABELS[cat]}</option>
-          ))}
-        </select>
-      </div>
-
-      {/* Secrets list */}
-      <div className="space-y-2">
-        {filtered.length === 0 ? (
-          <div className="text-center py-16 text-signal-text-muted text-sm">
-            <Key size={32} className="mx-auto mb-3 opacity-20" />
-            {t('secrets.empty', 'No hay secretos almacenados')}
-          </div>
-        ) : filtered.map((secret) => (
-          <div key={secret.id} className="bg-signal-card border border-signal-border rounded flex items-center gap-4 px-4 py-3 hover:border-signal-border-bright transition-colors">
-            <Key size={14} className="text-signal-text-muted shrink-0" />
-            <div className="flex-1 min-w-0">
-              <div className="flex items-center gap-2 mb-1">
-                <span className="text-sm font-semibold text-signal-text truncate">{secret.name}</span>
-                <span className={`text-xs px-1.5 py-0.5 rounded border ${CATEGORY_COLORS[secret.category]}`}>
-                  {CATEGORY_LABELS[secret.category]}
-                </span>
-              </div>
-              {secret.description && (
-                <div className="text-xs text-signal-text-muted truncate">{secret.description}</div>
-              )}
-            </div>
-            <div className="font-mono text-xs text-signal-text-dim bg-signal-surface border border-signal-border rounded px-3 py-1.5 min-w-0 max-w-xs truncate">
-              {visible.has(secret.id) ? secret.value : '•'.repeat(Math.min(secret.value.length, 24))}
-            </div>
-            <div className="flex items-center gap-1 shrink-0">
-              <button onClick={() => toggleVisible(secret.id)} title={visible.has(secret.id) ? 'Hide' : 'Show'}
-                className="p-1.5 text-signal-text-muted hover:text-signal-text transition-colors rounded hover:bg-signal-surface">
-                {visible.has(secret.id) ? <EyeOff size={13} /> : <Eye size={13} />}
-              </button>
-              <button onClick={() => copyValue(secret.id, secret.value)} title="Copy"
-                className="p-1.5 text-signal-text-muted hover:text-signal-green transition-colors rounded hover:bg-signal-surface">
-                {copied === secret.id ? <Check size={13} className="text-signal-green" /> : <Copy size={13} />}
-              </button>
-              <button onClick={() => deleteSecret(secret.id)} title="Delete"
-                className="p-1.5 text-signal-text-muted hover:text-red-400 transition-colors rounded hover:bg-signal-surface">
-                <Trash2 size={13} />
-              </button>
-            </div>
-          </div>
-        ))}
-      </div>
-
-      {/* Add Modal */}
-      {modalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm">
-          <div className="bg-signal-card border border-signal-border rounded w-full max-w-md mx-4 p-6 shadow-signal-card">
-            <div className="flex items-center justify-between mb-6">
-              <div>
-                <div className="text-signal-text-muted text-xs tracking-widest mb-0.5">// NUEVO</div>
-                <h2 className="text-lg font-bold text-signal-text">{t('secrets.add', 'Nuevo Secreto')}</h2>
-              </div>
-              <button onClick={() => setModalOpen(false)} className="text-signal-text-muted hover:text-signal-text"><X size={16} /></button>
-            </div>
-            <form onSubmit={addSecret} className="space-y-4">
-              <div>
-                <label className="block text-xs text-signal-text-dim mb-1.5 uppercase tracking-wider">{t('secrets.name', 'Nombre')}</label>
-                <input required value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} placeholder="MY_SECRET_KEY"
-                  className="w-full px-3 py-2 bg-signal-surface border border-signal-border text-signal-text text-sm rounded focus:outline-hidden focus:border-signal-green transition-colors" />
-              </div>
-              <div>
-                <label className="block text-xs text-signal-text-dim mb-1.5 uppercase tracking-wider">{t('secrets.value', 'Valor')}</label>
-                <input required type="password" value={form.value} onChange={(e) => setForm({ ...form, value: e.target.value })} placeholder="••••••••"
-                  className="w-full px-3 py-2 bg-signal-surface border border-signal-border text-signal-text text-sm rounded focus:outline-hidden focus:border-signal-green transition-colors" />
-              </div>
-              <div>
-                <label className="block text-xs text-signal-text-dim mb-1.5 uppercase tracking-wider">{t('secrets.category', 'Categoría')}</label>
-                <select value={form.category} onChange={(e) => setForm({ ...form, category: e.target.value as SecretCategory })}
-                  className="w-full px-3 py-2 bg-signal-surface border border-signal-border text-signal-text text-sm rounded focus:outline-hidden focus:border-signal-green transition-colors">
-                  {(Object.keys(CATEGORY_LABELS) as SecretCategory[]).map((cat) => (
-                    <option key={cat} value={cat}>{CATEGORY_LABELS[cat]}</option>
-                  ))}
-                </select>
-              </div>
-              <div>
-                <label className="block text-xs text-signal-text-dim mb-1.5 uppercase tracking-wider">{t('secrets.description', 'Descripción (opcional)')}</label>
-                <input value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} placeholder="Descripción del secreto"
-                  className="w-full px-3 py-2 bg-signal-surface border border-signal-border text-signal-text text-sm rounded focus:outline-hidden focus:border-signal-green transition-colors" />
-              </div>
-              <button type="submit" className="w-full px-4 py-2.5 bg-signal-green hover:bg-signal-green-dim text-signal-bg font-bold text-sm rounded transition-colors">
-                {t('app.save', 'Guardar')}
-              </button>
-            </form>
-          </div>
-        </div>
+    <div className="flex items-center gap-1.5">
+      <code className="min-w-0 flex-1 truncate rounded bg-canvas px-2 py-1 font-mono text-[12px] text-ink-dim">
+        {shown ? (isFetching ? 'Loading…' : data?.value ?? '—') : '••••••••••••'}
+      </code>
+      <Button size="sm" variant="ghost" iconOnly onClick={() => setShown((v) => !v)}
+        aria-label={shown ? 'Hide value' : 'Reveal value'}>
+        {shown ? <EyeOff size={13} /> : <Eye size={13} />}
+      </Button>
+      {shown && data?.value && (
+        <Button size="sm" variant="ghost" iconOnly onClick={copy} aria-label="Copy value"
+          className={copied ? 'text-brand' : undefined}>
+          <Copy size={13} />
+        </Button>
       )}
     </div>
+  );
+}
+
+export function Secrets() {
+  const { data, isPending, isError, error, refetch } = useSecrets();
+  const createSecret = secretsResource.useCreate();
+  const removeSecret = secretsResource.useRemove();
+
+  const [query, setQuery] = useState('');
+  const [open, setOpen] = useState(false);
+  const [form, setForm] = useState({ name: '', value: '', category: 'api_key' });
+
+  const secrets = useMemo(() => {
+    const term = query.trim().toLowerCase();
+    return (data ?? [])
+      .filter((s) => !term || s.name.toLowerCase().includes(term))
+      .sort((a, b) => a.name.localeCompare(b.name));
+  }, [data, query]);
+
+  async function handleCreate(e: React.FormEvent) {
+    e.preventDefault();
+    if (!form.name.trim() || !form.value) return;
+    await createSecret.mutateAsync({ name: form.name.trim(), value: form.value, category: form.category });
+    setOpen(false);
+    setForm({ name: '', value: '', category: 'api_key' });
+  }
+
+  return (
+    <PageShell>
+      <PageHeader
+        title="Secrets"
+        description="Encrypted at rest. Values are only fetched when you reveal them."
+        actions={<Button variant="primary" onClick={() => setOpen(true)}><Plus size={15} />New secret</Button>}
+      />
+
+      <div className="mt-5">
+        <div className="w-full sm:w-72">
+          <SearchInput value={query} onChange={setQuery} placeholder="Search secrets…" />
+        </div>
+      </div>
+
+      <Card className="mt-4 overflow-hidden">
+        {isPending ? (
+          <CardBody className="space-y-2">
+            {Array.from({ length: 4 }, (_, i) => <Skeleton key={i} className="h-11" />)}
+          </CardBody>
+        ) : isError ? (
+          <ErrorState message={error instanceof Error ? error.message : undefined} onRetry={() => refetch()} />
+        ) : secrets.length === 0 ? (
+          <EmptyState
+            icon={KeyRound}
+            title={data?.length ? 'No secrets match' : 'No secrets stored'}
+            description={data?.length ? 'Try a different search.' : 'Store API keys and tokens so they stay out of your repos.'}
+            action={<Button size="sm" variant="primary" onClick={() => setOpen(true)}><Plus size={14} />New secret</Button>}
+          />
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="w-full text-left text-[13px]">
+              <thead>
+                <tr className="border-b border-line text-[12px] text-ink-faint">
+                  <th className="px-4 py-2.5 font-medium">Name</th>
+                  <th className="px-4 py-2.5 font-medium">Category</th>
+                  <th className="w-72 px-4 py-2.5 font-medium">Value</th>
+                  <th className="px-4 py-2.5 font-medium">Updated</th>
+                  <th className="w-10 px-4 py-2.5" />
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-line">
+                {secrets.map((secret) => (
+                  <tr key={secret.id} className="group transition-colors hover:bg-raised/50">
+                    <td className="px-4 py-2.5 font-mono text-ink">{secret.name}</td>
+                    <td className="px-4 py-2.5"><Badge tone="neutral">{secret.category}</Badge></td>
+                    <td className="px-4 py-2.5"><RevealCell id={secret.id} /></td>
+                    <td className="whitespace-nowrap px-4 py-2.5 text-ink-faint">{formatDate(secret.updatedAt)}</td>
+                    <td className="px-4 py-2.5">
+                      <button
+                        onClick={() => removeSecret.mutate(secret.id)}
+                        aria-label={`Delete ${secret.name}`}
+                        className="rounded p-1 text-ink-faint opacity-0 transition hover:bg-critical-soft hover:text-critical group-hover:opacity-100"
+                      >
+                        <Trash2 size={14} />
+                      </button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </Card>
+
+      <Modal
+        open={open}
+        onClose={() => setOpen(false)}
+        title="New secret"
+        description="The value is encrypted before it is stored."
+        footer={
+          <>
+            <Button onClick={() => setOpen(false)}>Cancel</Button>
+            <Button variant="primary" type="submit" form="secret-form"
+              loading={createSecret.isPending} disabled={!form.name.trim() || !form.value}>
+              Store secret
+            </Button>
+          </>
+        }
+      >
+        <form id="secret-form" onSubmit={handleCreate} className="space-y-4">
+          <Field label="Name" required htmlFor="s-name" hint="Use the environment-variable name.">
+            <Input id="s-name" autoFocus className="font-mono" placeholder="GITHUB_TOKEN"
+              value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} />
+          </Field>
+          <Field label="Value" required htmlFor="s-value">
+            <Input id="s-value" type="password" autoComplete="new-password" className="font-mono"
+              value={form.value} onChange={(e) => setForm({ ...form, value: e.target.value })} />
+          </Field>
+          <Field label="Category" htmlFor="s-cat">
+            <Input id="s-cat" value={form.category} onChange={(e) => setForm({ ...form, category: e.target.value })} />
+          </Field>
+        </form>
+      </Modal>
+    </PageShell>
   );
 }

@@ -1,593 +1,302 @@
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
+import { CheckCircle2, FileText, Plus, Send, Trash2 } from 'lucide-react';
 import {
-  Plus, X, Eye, Send, CheckCircle, Download, Trash2, FileText,
-} from 'lucide-react';
-import { mockInvoices, mockProjects } from '@/lib/mock-data';
-import type { Invoice, InvoiceItem, InvoiceStatus } from '@/types';
+  Badge, Button, Card, CardBody, EmptyState, ErrorState, Field, Input, Modal,
+  PageHeader, PageShell, SearchInput, Select, Skeleton, StatTile, Textarea,
+  type Tone,
+} from '@/components/ui';
+import { invoicesResource, useInvoice, useInvoiceAction, useInvoices, useProjectMap } from '@/hooks/queries';
+import { formatCurrency, formatDate } from '@/lib/format';
+import type { InvoiceStatus } from '@/types';
 
-// ─── Helpers ──────────────────────────────────────────────────────────────────
-function formatCurrency(amount: number, currency = 'USD'): string {
-  return new Intl.NumberFormat('en-US', { style: 'currency', currency }).format(amount);
-}
-
-function formatDate(dateStr: string): string {
-  return new Date(dateStr + 'T12:00:00').toLocaleDateString('en-US', {
-    year: 'numeric', month: 'short', day: 'numeric',
-  });
-}
-
-function newItemId(): string {
-  return `item_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`;
-}
-
-function newInvoiceId(): string {
-  return `inv_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`;
-}
-
-const STATUS_STYLES: Record<InvoiceStatus, string> = {
-  draft: 'bg-slate-700/40 text-slate-300 border border-slate-600/40',
-  sent: 'bg-blue-900/30 text-blue-300 border border-blue-700/40',
-  paid: 'bg-signal-green/20 text-signal-green border border-signal-green/30',
-  overdue: 'bg-red-900/30 text-red-300 border border-red-700/40',
-  cancelled: 'bg-slate-700/40 text-slate-400 border border-slate-600/40',
+const STATUS_TONE: Record<InvoiceStatus, Tone> = {
+  draft: 'neutral', sent: 'info', paid: 'positive', overdue: 'critical', cancelled: 'neutral',
 };
 
-const STATUS_LABELS: Record<InvoiceStatus, string> = {
-  draft: 'Draft',
-  sent: 'Sent',
-  paid: 'Paid',
-  overdue: 'Overdue',
-  cancelled: 'Cancelled',
-};
+const STATUSES: InvoiceStatus[] = ['draft', 'sent', 'paid', 'overdue', 'cancelled'];
 
-// ─── Empty form state ─────────────────────────────────────────────────────────
-interface InvoiceFormState {
-  projectId: string;
-  issue_date: string;
-  due_date: string;
-  tax_rate: number;
-  notes: string;
-  items: InvoiceItem[];
-  currency: string;
+function todayISO() { return new Date().toISOString().slice(0, 10); }
+function plusDaysISO(days: number) {
+  const d = new Date();
+  d.setDate(d.getDate() + days);
+  return d.toISOString().slice(0, 10);
 }
 
-const emptyForm = (): InvoiceFormState => ({
-  projectId: mockProjects[0]?.id ?? '',
-  issue_date: new Date().toISOString().split('T')[0],
-  due_date: new Date(Date.now() + 30 * 86400000).toISOString().split('T')[0],
-  tax_rate: 16,
-  notes: '',
-  currency: 'USD',
-  items: [{ id: newItemId(), description: '', quantity: 1, unit_price: 0, total: 0 }],
-});
-
-// ─── Component ────────────────────────────────────────────────────────────────
 export function Invoices() {
-  const [invoices, setInvoices] = useState<Invoice[]>(mockInvoices);
-  const [showModal, setShowModal] = useState(false);
-  const [viewInvoice, setViewInvoice] = useState<Invoice | null>(null);
-  const [form, setForm] = useState<InvoiceFormState>(emptyForm());
-  const [toast, setToast] = useState<string | null>(null);
+  const { projects, map } = useProjectMap();
+  const [status, setStatus] = useState<'' | InvoiceStatus>('');
+  const [query, setQuery] = useState('');
+  const { data, isPending, isError, error, refetch } = useInvoices(status ? { status } : undefined);
+  const createInvoice = invoicesResource.useCreate();
+  const removeInvoice = invoicesResource.useRemove();
+  const runAction = useInvoiceAction();
 
-  const showToast = (msg: string) => {
-    setToast(msg);
-    setTimeout(() => setToast(null), 3000);
-  };
+  const [creating, setCreating] = useState(false);
+  const [openId, setOpenId] = useState<string | null>(null);
+  const detail = useInvoice(openId ?? undefined);
 
-  // ─── Summary stats ──────────────────────────────────────────────────────────
-  const totalInvoiced = invoices.reduce((s, i) => s + i.total, 0);
-  const totalPaid = invoices.filter((i) => i.status === 'paid').reduce((s, i) => s + i.total, 0);
-  const totalOutstanding = invoices
-    .filter((i) => i.status === 'sent' || i.status === 'overdue')
-    .reduce((s, i) => s + i.total, 0);
-  const totalDraft = invoices.filter((i) => i.status === 'draft').reduce((s, i) => s + i.total, 0);
+  const [form, setForm] = useState({
+    projectId: '', invoiceNumber: '', issueDate: todayISO(), dueDate: plusDaysISO(30),
+    subtotal: '', taxRate: '0.16', notes: '',
+  });
 
-  // ─── Form helpers ───────────────────────────────────────────────────────────
-  const updateItem = (id: string, field: keyof InvoiceItem, value: string | number) => {
-    setForm((prev) => ({
-      ...prev,
-      items: prev.items.map((item) => {
-        if (item.id !== id) return item;
-        const updated = { ...item, [field]: value };
-        updated.total = updated.quantity * updated.unit_price;
-        return updated;
-      }),
-    }));
-  };
+  const invoices = useMemo(() => {
+    const term = query.trim().toLowerCase();
+    return (data ?? [])
+      .filter((inv) => !term || inv.invoiceNumber.toLowerCase().includes(term))
+      .sort((a, b) => b.issueDate.localeCompare(a.issueDate));
+  }, [data, query]);
 
-  const addItem = () => {
-    setForm((prev) => ({
-      ...prev,
-      items: [...prev.items, { id: newItemId(), description: '', quantity: 1, unit_price: 0, total: 0 }],
-    }));
-  };
+  const pending = invoices.filter((i) => i.status === 'sent' || i.status === 'overdue');
+  const pendingTotal = pending.reduce((s, i) => s + i.total, 0);
+  const paidTotal = invoices.filter((i) => i.status === 'paid').reduce((s, i) => s + i.total, 0);
 
-  const removeItem = (id: string) => {
-    setForm((prev) => ({ ...prev, items: prev.items.filter((i) => i.id !== id) }));
-  };
-
-  const subtotal = form.items.reduce((s, i) => s + i.total, 0);
-  const taxAmount = subtotal * (form.tax_rate / 100);
-  const total = subtotal + taxAmount;
-
-  const handleCreateInvoice = () => {
-    const project = mockProjects.find((p) => p.id === form.projectId);
-    const newInvoice: Invoice = {
-      id: newInvoiceId(),
+  async function handleCreate(e: React.FormEvent) {
+    e.preventDefault();
+    const subtotal = Number(form.subtotal);
+    const taxRate = Number(form.taxRate);
+    if (!form.projectId || !form.invoiceNumber.trim() || !Number.isFinite(subtotal)) return;
+    const taxAmount = Math.round(subtotal * taxRate * 100) / 100;
+    await createInvoice.mutateAsync({
       projectId: form.projectId,
-      projectName: project?.name ?? '',
-      invoice_number: `INV-${new Date().getFullYear()}-${String(invoices.length + 1).padStart(3, '0')}`,
-      issue_date: form.issue_date,
-      due_date: form.due_date,
+      invoiceNumber: form.invoiceNumber.trim(),
+      issueDate: form.issueDate,
+      dueDate: form.dueDate,
       subtotal,
-      tax_rate: form.tax_rate,
-      tax_amount: taxAmount,
-      total,
-      currency: form.currency,
+      taxRate,
+      taxAmount,
+      total: subtotal + taxAmount,
+      currency: map.get(form.projectId)?.currency ?? 'USD',
       status: 'draft',
-      notes: form.notes,
-      items: form.items,
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
-    };
-    setInvoices((prev) => [newInvoice, ...prev]);
-    setShowModal(false);
-    setForm(emptyForm());
-    showToast('Invoice created successfully');
-  };
-
-  const handleStatusChange = (id: string, status: InvoiceStatus) => {
-    setInvoices((prev) =>
-      prev.map((inv) => (inv.id === id ? { ...inv, status } : inv))
-    );
-    const msgs: Record<string, string> = {
-      sent: 'Invoice sent to client',
-      paid: 'Invoice marked as paid',
-    };
-    if (msgs[status]) showToast(msgs[status]);
-  };
-
-  const handleDelete = (id: string) => {
-    setInvoices((prev) => prev.filter((inv) => inv.id !== id));
-    showToast('Invoice deleted');
-  };
-
-  // ─── Input class ────────────────────────────────────────────────────────────
-  const inputCls =
-    'w-full px-3 py-2 bg-signal-bg border border-signal-border rounded-lg text-signal-text text-sm focus:outline-hidden focus:border-signal-border-bright transition-colors';
+      notes: form.notes.trim() || null,
+    });
+    setCreating(false);
+    setForm({ ...form, invoiceNumber: '', subtotal: '', notes: '' });
+  }
 
   return (
-    <div className="p-6 min-h-screen bg-signal-bg">
-      {/* Toast */}
-      {toast && (
-        <div className="fixed top-5 right-5 z-50 flex items-center gap-2 bg-signal-green/20 border border-signal-green text-signal-green px-4 py-3 rounded-xl shadow-signal-card">
-          <CheckCircle size={16} />
-          <span className="text-sm font-medium">{toast}</span>
-        </div>
-      )}
+    <PageShell>
+      <PageHeader
+        title="Invoices"
+        description="Billing across every client."
+        actions={
+          <Button variant="primary" onClick={() => setCreating(true)}>
+            <Plus size={15} />
+            New invoice
+          </Button>
+        }
+      />
 
-      {/* Header */}
-      <div className="flex items-center justify-between mb-6">
-        <div>
-          <h2 className="text-xl font-bold text-signal-text">Invoices</h2>
-          <p className="text-signal-text-muted text-sm mt-0.5">{invoices.length} invoices total</p>
-        </div>
-        <button
-          onClick={() => { setForm(emptyForm()); setShowModal(true); }}
-          className="flex items-center gap-2 px-4 py-2 bg-signal-green text-signal-bg rounded-lg text-sm font-semibold hover:opacity-90 transition-opacity"
-        >
-          <Plus size={15} />
-          New Invoice
-        </button>
+      <div className="mt-5 grid gap-3 sm:grid-cols-3">
+        {isPending ? (
+          Array.from({ length: 3 }, (_, i) => <Skeleton key={i} className="h-[104px]" />)
+        ) : (
+          <>
+            <StatTile icon={FileText} label="Outstanding" value={formatCurrency(pendingTotal, 'USD', { compact: true })} upIsGood={false} />
+            <StatTile label="Collected" value={formatCurrency(paidTotal, 'USD', { compact: true })} />
+            <StatTile label="Invoices" value={invoices.length} />
+          </>
+        )}
       </div>
 
-      {/* Summary cards */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
-        {[
-          { label: 'Total Invoiced', value: totalInvoiced, color: 'text-signal-text' },
-          { label: 'Paid', value: totalPaid, color: 'text-signal-green' },
-          { label: 'Outstanding', value: totalOutstanding, color: 'text-amber-400' },
-          { label: 'Draft', value: totalDraft, color: 'text-signal-text-dim' },
-        ].map(({ label, value, color }) => (
-          <div
-            key={label}
-            className="bg-signal-surface border border-signal-border rounded-xl p-4 shadow-signal-card"
-          >
-            <p className="text-signal-text-muted text-xs mb-1">{label}</p>
-            <p className={`text-xl font-bold ${color}`}>{formatCurrency(value)}</p>
-          </div>
-        ))}
+      <div className="mt-5 flex flex-wrap items-center gap-2">
+        <div className="w-full sm:w-72">
+          <SearchInput value={query} onChange={setQuery} placeholder="Search by number…" />
+        </div>
+        <div className="w-44">
+          <Select value={status} onChange={(e) => setStatus(e.target.value as '' | InvoiceStatus)}>
+            <option value="">All statuses</option>
+            {STATUSES.map((s) => <option key={s} value={s}>{s[0].toUpperCase() + s.slice(1)}</option>)}
+          </Select>
+        </div>
       </div>
 
-      {/* Table */}
-      <div className="bg-signal-surface border border-signal-border rounded-xl overflow-hidden shadow-signal-card">
-        <div className="overflow-x-auto">
-          <table className="w-full text-sm">
-            <thead>
-              <tr className="border-b border-signal-border">
-                {['Invoice #', 'Project', 'Issue Date', 'Due Date', 'Total', 'Status', 'Actions'].map((h) => (
-                  <th key={h} className="text-left px-4 py-3 text-signal-text-muted font-medium whitespace-nowrap">
-                    {h}
-                  </th>
+      <Card className="mt-3 overflow-hidden">
+        {isPending ? (
+          <CardBody className="space-y-2">
+            {Array.from({ length: 5 }, (_, i) => <Skeleton key={i} className="h-11" />)}
+          </CardBody>
+        ) : isError ? (
+          <ErrorState message={error instanceof Error ? error.message : undefined} onRetry={() => refetch()} />
+        ) : invoices.length === 0 ? (
+          <EmptyState
+            icon={FileText}
+            title="No invoices"
+            description="Create one to bill a client for tracked work."
+            action={<Button size="sm" variant="primary" onClick={() => setCreating(true)}><Plus size={14} />New invoice</Button>}
+          />
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="w-full text-left text-[13px]">
+              <thead>
+                <tr className="border-b border-line text-[12px] text-ink-faint">
+                  <th className="px-4 py-2.5 font-medium">Number</th>
+                  <th className="px-4 py-2.5 font-medium">Project</th>
+                  <th className="px-4 py-2.5 font-medium">Issued</th>
+                  <th className="px-4 py-2.5 font-medium">Due</th>
+                  <th className="px-4 py-2.5 text-right font-medium">Total</th>
+                  <th className="px-4 py-2.5 font-medium">Status</th>
+                  <th className="px-4 py-2.5 text-right font-medium">Actions</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-line">
+                {invoices.map((invoice) => (
+                  <tr key={invoice.id} className="group transition-colors hover:bg-raised/50">
+                    <td className="px-4 py-2.5">
+                      <button
+                        onClick={() => setOpenId(invoice.id)}
+                        className="font-mono text-ink hover:text-brand hover:underline"
+                      >
+                        {invoice.invoiceNumber}
+                      </button>
+                    </td>
+                    <td className="px-4 py-2.5 text-ink-dim">{map.get(invoice.projectId)?.name ?? '—'}</td>
+                    <td className="whitespace-nowrap px-4 py-2.5 text-ink-faint">{formatDate(invoice.issueDate)}</td>
+                    <td className="whitespace-nowrap px-4 py-2.5 text-ink-faint">{formatDate(invoice.dueDate)}</td>
+                    <td className="px-4 py-2.5 text-right font-medium text-ink">
+                      {formatCurrency(invoice.total, invoice.currency)}
+                    </td>
+                    <td className="px-4 py-2.5"><Badge tone={STATUS_TONE[invoice.status]}>{invoice.status}</Badge></td>
+                    <td className="px-4 py-2.5">
+                      <div className="flex items-center justify-end gap-1 opacity-0 transition group-hover:opacity-100">
+                        {invoice.status === 'draft' && (
+                          <Button size="sm" variant="ghost" title="Send"
+                            onClick={() => runAction.mutate({ id: invoice.id, action: 'send' })}>
+                            <Send size={13} />
+                          </Button>
+                        )}
+                        {invoice.status !== 'paid' && (
+                          <Button size="sm" variant="ghost" title="Mark paid"
+                            onClick={() => runAction.mutate({ id: invoice.id, action: 'mark-paid' })}>
+                            <CheckCircle2 size={13} />
+                          </Button>
+                        )}
+                        <Button size="sm" variant="ghost" title="Delete"
+                          className="hover:text-critical"
+                          onClick={() => removeInvoice.mutate(invoice.id)}>
+                          <Trash2 size={13} />
+                        </Button>
+                      </div>
+                    </td>
+                  </tr>
                 ))}
-              </tr>
-            </thead>
-            <tbody>
-              {invoices.map((inv) => (
-                <tr
-                  key={inv.id}
-                  className="border-b border-signal-border hover:bg-signal-card/40 transition-colors"
-                >
-                  <td className="px-4 py-3 text-signal-text font-mono text-xs">{inv.invoice_number}</td>
-                  <td className="px-4 py-3">
-                    <div className="flex items-center gap-2">
-                      <div
-                        className="w-2 h-2 rounded-full shrink-0"
-                        style={{ backgroundColor: mockProjects.find((p) => p.id === inv.projectId)?.color ?? '#888' }}
-                      />
-                      <span className="text-signal-text">{inv.projectName}</span>
-                    </div>
-                  </td>
-                  <td className="px-4 py-3 text-signal-text-dim">{formatDate(inv.issue_date)}</td>
-                  <td className="px-4 py-3 text-signal-text-dim">{formatDate(inv.due_date)}</td>
-                  <td className="px-4 py-3 text-signal-text font-semibold">
-                    {formatCurrency(inv.total, inv.currency)}
-                  </td>
-                  <td className="px-4 py-3">
-                    <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${STATUS_STYLES[inv.status]}`}>
-                      {STATUS_LABELS[inv.status]}
-                    </span>
-                  </td>
-                  <td className="px-4 py-3">
-                    <div className="flex items-center gap-1">
-                      <button
-                        onClick={() => setViewInvoice(inv)}
-                        title="View"
-                        className="p-1.5 rounded-lg text-signal-text-muted hover:text-signal-text hover:bg-signal-card transition-colors"
-                      >
-                        <Eye size={14} />
-                      </button>
-                      {inv.status === 'draft' && (
-                        <button
-                          onClick={() => handleStatusChange(inv.id, 'sent')}
-                          title="Send"
-                          className="p-1.5 rounded-lg text-signal-text-muted hover:text-blue-300 hover:bg-signal-card transition-colors"
-                        >
-                          <Send size={14} />
-                        </button>
-                      )}
-                      {(inv.status === 'sent' || inv.status === 'overdue') && (
-                        <button
-                          onClick={() => handleStatusChange(inv.id, 'paid')}
-                          title="Mark Paid"
-                          className="p-1.5 rounded-lg text-signal-text-muted hover:text-signal-green hover:bg-signal-card transition-colors"
-                        >
-                          <CheckCircle size={14} />
-                        </button>
-                      )}
-                      <button
-                        onClick={() => showToast(`Downloading ${inv.invoice_number}.pdf…`)}
-                        title="Download PDF"
-                        className="p-1.5 rounded-lg text-signal-text-muted hover:text-signal-text hover:bg-signal-card transition-colors"
-                      >
-                        <Download size={14} />
-                      </button>
-                      <button
-                        onClick={() => handleDelete(inv.id)}
-                        title="Delete"
-                        className="p-1.5 rounded-lg text-signal-text-muted hover:text-red-400 hover:bg-signal-card transition-colors"
-                      >
-                        <Trash2 size={14} />
-                      </button>
-                    </div>
-                  </td>
-                </tr>
-              ))}
-              {invoices.length === 0 && (
-                <tr>
-                  <td colSpan={7} className="px-4 py-12 text-center text-signal-text-muted">
-                    No invoices yet. Create your first invoice.
-                  </td>
-                </tr>
-              )}
-            </tbody>
-          </table>
-        </div>
-      </div>
-
-      {/* New Invoice Modal */}
-      {showModal && (
-        <div className="fixed inset-0 z-40 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
-          <div className="bg-signal-surface border border-signal-border rounded-2xl shadow-signal-card w-full max-w-3xl max-h-[90vh] overflow-y-auto">
-            <div className="flex items-center justify-between px-6 py-4 border-b border-signal-border">
-              <h3 className="text-signal-text font-semibold text-lg">New Invoice</h3>
-              <button
-                onClick={() => setShowModal(false)}
-                className="p-1.5 rounded-lg text-signal-text-muted hover:text-signal-text hover:bg-signal-card transition-colors"
-              >
-                <X size={18} />
-              </button>
-            </div>
-
-            <div className="p-6 space-y-5">
-              {/* Project + Dates */}
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                <div>
-                  <label className="block text-signal-text-dim text-xs mb-1.5">Project</label>
-                  <select
-                    value={form.projectId}
-                    onChange={(e) => setForm({ ...form, projectId: e.target.value })}
-                    className={inputCls}
-                  >
-                    {mockProjects.map((p) => (
-                      <option key={p.id} value={p.id}>{p.name}</option>
-                    ))}
-                  </select>
-                </div>
-                <div>
-                  <label className="block text-signal-text-dim text-xs mb-1.5">Issue Date</label>
-                  <input
-                    type="date"
-                    value={form.issue_date}
-                    onChange={(e) => setForm({ ...form, issue_date: e.target.value })}
-                    className={inputCls}
-                  />
-                </div>
-                <div>
-                  <label className="block text-signal-text-dim text-xs mb-1.5">Due Date</label>
-                  <input
-                    type="date"
-                    value={form.due_date}
-                    onChange={(e) => setForm({ ...form, due_date: e.target.value })}
-                    className={inputCls}
-                  />
-                </div>
-              </div>
-
-              {/* Line items */}
-              <div>
-                <div className="flex items-center justify-between mb-2">
-                  <label className="text-signal-text-dim text-xs">Line Items</label>
-                  <button
-                    type="button"
-                    onClick={addItem}
-                    className="flex items-center gap-1 text-xs text-signal-green hover:opacity-80 transition-opacity"
-                  >
-                    <Plus size={12} /> Add Item
-                  </button>
-                </div>
-                <div className="border border-signal-border rounded-lg overflow-hidden">
-                  <table className="w-full text-xs">
-                    <thead>
-                      <tr className="bg-signal-card border-b border-signal-border">
-                        <th className="text-left px-3 py-2 text-signal-text-muted font-medium">Description</th>
-                        <th className="text-center px-2 py-2 text-signal-text-muted font-medium w-16">Qty</th>
-                        <th className="text-right px-2 py-2 text-signal-text-muted font-medium w-24">Unit Price</th>
-                        <th className="text-right px-2 py-2 text-signal-text-muted font-medium w-24">Total</th>
-                        <th className="w-8"></th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {form.items.map((item) => (
-                        <tr key={item.id} className="border-b border-signal-border last:border-0">
-                          <td className="px-2 py-1.5">
-                            <input
-                              type="text"
-                              value={item.description}
-                              onChange={(e) => updateItem(item.id, 'description', e.target.value)}
-                              placeholder="Description"
-                              className="w-full bg-transparent text-signal-text placeholder:text-signal-text-muted focus:outline-hidden"
-                            />
-                          </td>
-                          <td className="px-2 py-1.5">
-                            <input
-                              type="number"
-                              min={0}
-                              step={0.5}
-                              value={item.quantity}
-                              onChange={(e) => updateItem(item.id, 'quantity', parseFloat(e.target.value) || 0)}
-                              className="w-full text-center bg-transparent text-signal-text focus:outline-hidden"
-                            />
-                          </td>
-                          <td className="px-2 py-1.5">
-                            <input
-                              type="number"
-                              min={0}
-                              step={0.01}
-                              value={item.unit_price}
-                              onChange={(e) => updateItem(item.id, 'unit_price', parseFloat(e.target.value) || 0)}
-                              className="w-full text-right bg-transparent text-signal-text focus:outline-hidden"
-                            />
-                          </td>
-                          <td className="px-2 py-1.5 text-right text-signal-text font-medium">
-                            {formatCurrency(item.total)}
-                          </td>
-                          <td className="px-2 py-1.5">
-                            <button
-                              onClick={() => removeItem(item.id)}
-                              className="text-signal-text-muted hover:text-red-400 transition-colors"
-                            >
-                              <X size={12} />
-                            </button>
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              </div>
-
-              {/* Tax + Totals */}
-              <div className="flex justify-end">
-                <div className="w-64 space-y-2">
-                  <div className="flex items-center gap-2">
-                    <label className="text-signal-text-dim text-xs flex-1">Tax Rate (%)</label>
-                    <input
-                      type="number"
-                      min={0}
-                      max={100}
-                      step={0.5}
-                      value={form.tax_rate}
-                      onChange={(e) => setForm({ ...form, tax_rate: parseFloat(e.target.value) || 0 })}
-                      className="w-20 px-2 py-1 bg-signal-bg border border-signal-border rounded text-signal-text text-xs text-right focus:outline-hidden focus:border-signal-border-bright"
-                    />
-                  </div>
-                  <div className="flex justify-between text-xs text-signal-text-dim pt-1 border-t border-signal-border">
-                    <span>Subtotal</span>
-                    <span>{formatCurrency(subtotal)}</span>
-                  </div>
-                  <div className="flex justify-between text-xs text-signal-text-dim">
-                    <span>Tax ({form.tax_rate}%)</span>
-                    <span>{formatCurrency(taxAmount)}</span>
-                  </div>
-                  <div className="flex justify-between text-sm text-signal-text font-bold pt-1 border-t border-signal-border">
-                    <span>Total</span>
-                    <span className="text-signal-green">{formatCurrency(total)}</span>
-                  </div>
-                </div>
-              </div>
-
-              {/* Notes */}
-              <div>
-                <label className="block text-signal-text-dim text-xs mb-1.5">Notes (optional)</label>
-                <textarea
-                  value={form.notes}
-                  onChange={(e) => setForm({ ...form, notes: e.target.value })}
-                  rows={2}
-                  placeholder="Payment terms, notes for client…"
-                  className={`${inputCls} resize-none`}
-                />
-              </div>
-            </div>
-
-            <div className="flex justify-end gap-3 px-6 py-4 border-t border-signal-border">
-              <button
-                onClick={() => setShowModal(false)}
-                className="px-4 py-2 border border-signal-border rounded-lg text-signal-text-dim text-sm hover:text-signal-text hover:border-signal-border-bright transition-colors"
-              >
-                Cancel
-              </button>
-              <button
-                onClick={handleCreateInvoice}
-                className="px-5 py-2 bg-signal-green text-signal-bg rounded-lg text-sm font-semibold hover:opacity-90 transition-opacity"
-              >
-                Create Invoice
-              </button>
-            </div>
+              </tbody>
+            </table>
           </div>
-        </div>
-      )}
+        )}
+      </Card>
 
-      {/* View Invoice Modal */}
-      {viewInvoice && (
-        <div className="fixed inset-0 z-40 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
-          <div className="bg-signal-surface border border-signal-border rounded-2xl shadow-signal-card w-full max-w-2xl max-h-[90vh] overflow-y-auto">
-            <div className="flex items-center justify-between px-6 py-4 border-b border-signal-border">
-              <div className="flex items-center gap-3">
-                <FileText size={18} className="text-signal-text-dim" />
-                <h3 className="text-signal-text font-semibold">{viewInvoice.invoice_number}</h3>
-                <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${STATUS_STYLES[viewInvoice.status]}`}>
-                  {STATUS_LABELS[viewInvoice.status]}
-                </span>
-              </div>
-              <button
-                onClick={() => setViewInvoice(null)}
-                className="p-1.5 rounded-lg text-signal-text-muted hover:text-signal-text hover:bg-signal-card transition-colors"
-              >
-                <X size={18} />
-              </button>
+      {/* Detail */}
+      <Modal
+        open={openId !== null}
+        onClose={() => setOpenId(null)}
+        size="lg"
+        title={detail.data?.invoiceNumber ?? 'Invoice'}
+        description={detail.data ? map.get(detail.data.projectId)?.name ?? undefined : undefined}
+      >
+        {detail.isPending ? (
+          <div className="space-y-2">{Array.from({ length: 4 }, (_, i) => <Skeleton key={i} className="h-10" />)}</div>
+        ) : detail.data ? (
+          <div className="space-y-4">
+            <div className="grid grid-cols-2 gap-4 text-[13px] sm:grid-cols-4">
+              <div><p className="text-ink-faint">Issued</p><p className="text-ink">{formatDate(detail.data.issueDate)}</p></div>
+              <div><p className="text-ink-faint">Due</p><p className="text-ink">{formatDate(detail.data.dueDate)}</p></div>
+              <div><p className="text-ink-faint">Status</p><Badge tone={STATUS_TONE[detail.data.status]}>{detail.data.status}</Badge></div>
+              <div><p className="text-ink-faint">Currency</p><p className="text-ink">{detail.data.currency}</p></div>
             </div>
 
-            <div className="p-6 space-y-5">
-              <div className="grid grid-cols-2 gap-4 text-sm">
-                <div>
-                  <p className="text-signal-text-muted text-xs mb-0.5">Project</p>
-                  <p className="text-signal-text font-medium">{viewInvoice.projectName}</p>
-                </div>
-                <div>
-                  <p className="text-signal-text-muted text-xs mb-0.5">Currency</p>
-                  <p className="text-signal-text font-medium">{viewInvoice.currency}</p>
-                </div>
-                <div>
-                  <p className="text-signal-text-muted text-xs mb-0.5">Issue Date</p>
-                  <p className="text-signal-text">{formatDate(viewInvoice.issue_date)}</p>
-                </div>
-                <div>
-                  <p className="text-signal-text-muted text-xs mb-0.5">Due Date</p>
-                  <p className="text-signal-text">{formatDate(viewInvoice.due_date)}</p>
-                </div>
-              </div>
-
-              {/* Items */}
-              <div className="border border-signal-border rounded-lg overflow-hidden">
-                <table className="w-full text-xs">
+            {detail.data.items && detail.data.items.length > 0 && (
+              <div className="overflow-hidden rounded-md border border-line">
+                <table className="w-full text-left text-[13px]">
                   <thead>
-                    <tr className="bg-signal-card border-b border-signal-border">
-                      <th className="text-left px-3 py-2 text-signal-text-muted font-medium">Description</th>
-                      <th className="text-center px-3 py-2 text-signal-text-muted font-medium">Qty</th>
-                      <th className="text-right px-3 py-2 text-signal-text-muted font-medium">Unit Price</th>
-                      <th className="text-right px-3 py-2 text-signal-text-muted font-medium">Total</th>
+                    <tr className="border-b border-line bg-raised/40 text-[12px] text-ink-faint">
+                      <th className="px-3 py-2 font-medium">Description</th>
+                      <th className="px-3 py-2 text-right font-medium">Qty</th>
+                      <th className="px-3 py-2 text-right font-medium">Unit</th>
+                      <th className="px-3 py-2 text-right font-medium">Total</th>
                     </tr>
                   </thead>
-                  <tbody>
-                    {viewInvoice.items.map((item) => (
-                      <tr key={item.id} className="border-b border-signal-border last:border-0">
-                        <td className="px-3 py-2 text-signal-text">{item.description}</td>
-                        <td className="px-3 py-2 text-center text-signal-text-dim">{item.quantity}</td>
-                        <td className="px-3 py-2 text-right text-signal-text-dim">
-                          {formatCurrency(item.unit_price, viewInvoice.currency)}
-                        </td>
-                        <td className="px-3 py-2 text-right text-signal-text font-medium">
-                          {formatCurrency(item.total, viewInvoice.currency)}
-                        </td>
+                  <tbody className="divide-y divide-line">
+                    {detail.data.items.map((item) => (
+                      <tr key={item.id}>
+                        <td className="px-3 py-2 text-ink">{item.description}</td>
+                        <td className="px-3 py-2 text-right text-ink-dim">{item.quantity}</td>
+                        <td className="px-3 py-2 text-right text-ink-dim">{formatCurrency(item.unitPrice, detail.data!.currency)}</td>
+                        <td className="px-3 py-2 text-right font-medium text-ink">{formatCurrency(item.total, detail.data!.currency)}</td>
                       </tr>
                     ))}
                   </tbody>
                 </table>
               </div>
+            )}
 
-              {/* Totals */}
-              <div className="flex justify-end">
-                <div className="w-56 space-y-1.5 text-sm">
-                  <div className="flex justify-between text-signal-text-dim">
-                    <span>Subtotal</span>
-                    <span>{formatCurrency(viewInvoice.subtotal, viewInvoice.currency)}</span>
-                  </div>
-                  <div className="flex justify-between text-signal-text-dim">
-                    <span>Tax ({viewInvoice.tax_rate}%)</span>
-                    <span>{formatCurrency(viewInvoice.tax_amount, viewInvoice.currency)}</span>
-                  </div>
-                  <div className="flex justify-between font-bold text-signal-text border-t border-signal-border pt-1.5">
-                    <span>Total</span>
-                    <span className="text-signal-green">{formatCurrency(viewInvoice.total, viewInvoice.currency)}</span>
-                  </div>
-                </div>
+            <dl className="ml-auto w-full max-w-xs space-y-1.5 text-[13px]">
+              <div className="flex justify-between"><dt className="text-ink-faint">Subtotal</dt><dd className="text-ink">{formatCurrency(detail.data.subtotal, detail.data.currency)}</dd></div>
+              <div className="flex justify-between"><dt className="text-ink-faint">Tax ({Math.round(detail.data.taxRate * 100)}%)</dt><dd className="text-ink">{formatCurrency(detail.data.taxAmount, detail.data.currency)}</dd></div>
+              <div className="flex justify-between border-t border-line pt-1.5 font-medium"><dt className="text-ink">Total</dt><dd className="text-ink">{formatCurrency(detail.data.total, detail.data.currency)}</dd></div>
+            </dl>
+
+            {detail.data.notes && (
+              <div className="rounded-md border border-line bg-canvas p-3">
+                <p className="eyebrow mb-1">Notes</p>
+                <p className="text-[13px] leading-relaxed text-ink-dim">{detail.data.notes}</p>
               </div>
-
-              {viewInvoice.notes && (
-                <div className="p-3 bg-signal-card rounded-lg border border-signal-border text-signal-text-dim text-sm">
-                  {viewInvoice.notes}
-                </div>
-              )}
-            </div>
-
-            <div className="flex justify-end gap-3 px-6 py-4 border-t border-signal-border">
-              <button
-                onClick={() => showToast(`Downloading ${viewInvoice.invoice_number}.pdf…`)}
-                className="flex items-center gap-2 px-4 py-2 border border-signal-border rounded-lg text-signal-text-dim text-sm hover:text-signal-text hover:border-signal-border-bright transition-colors"
-              >
-                <Download size={14} /> Download PDF
-              </button>
-              <button
-                onClick={() => setViewInvoice(null)}
-                className="px-4 py-2 bg-signal-surface border border-signal-border rounded-lg text-signal-text text-sm hover:border-signal-border-bright transition-colors"
-              >
-                Close
-              </button>
-            </div>
+            )}
           </div>
-        </div>
-      )}
-    </div>
+        ) : (
+          <ErrorState message="Invoice not found." />
+        )}
+      </Modal>
+
+      {/* Create */}
+      <Modal
+        open={creating}
+        onClose={() => setCreating(false)}
+        title="New invoice"
+        footer={
+          <>
+            <Button onClick={() => setCreating(false)}>Cancel</Button>
+            <Button variant="primary" type="submit" form="new-invoice" loading={createInvoice.isPending}
+              disabled={!form.projectId || !form.invoiceNumber.trim() || !form.subtotal}>
+              Create invoice
+            </Button>
+          </>
+        }
+      >
+        <form id="new-invoice" onSubmit={handleCreate} className="space-y-4">
+          <Field label="Project" required htmlFor="ni-project">
+            <Select id="ni-project" value={form.projectId} onChange={(e) => setForm({ ...form, projectId: e.target.value })}>
+              <option value="">Select a project…</option>
+              {projects.map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}
+            </Select>
+          </Field>
+          <Field label="Invoice number" required htmlFor="ni-number">
+            <Input id="ni-number" value={form.invoiceNumber} placeholder="INV-2026-003"
+              onChange={(e) => setForm({ ...form, invoiceNumber: e.target.value })} />
+          </Field>
+          <div className="grid grid-cols-2 gap-3">
+            <Field label="Issue date" htmlFor="ni-issue">
+              <Input id="ni-issue" type="date" value={form.issueDate} onChange={(e) => setForm({ ...form, issueDate: e.target.value })} />
+            </Field>
+            <Field label="Due date" htmlFor="ni-due">
+              <Input id="ni-due" type="date" value={form.dueDate} onChange={(e) => setForm({ ...form, dueDate: e.target.value })} />
+            </Field>
+          </div>
+          <div className="grid grid-cols-2 gap-3">
+            <Field label="Subtotal" required htmlFor="ni-subtotal">
+              <Input id="ni-subtotal" type="number" min="0" step="0.01" value={form.subtotal}
+                onChange={(e) => setForm({ ...form, subtotal: e.target.value })} />
+            </Field>
+            <Field label="Tax rate" hint="0.16 = 16%" htmlFor="ni-tax">
+              <Input id="ni-tax" type="number" min="0" max="1" step="0.01" value={form.taxRate}
+                onChange={(e) => setForm({ ...form, taxRate: e.target.value })} />
+            </Field>
+          </div>
+          <Field label="Notes" htmlFor="ni-notes">
+            <Textarea id="ni-notes" rows={2} value={form.notes} onChange={(e) => setForm({ ...form, notes: e.target.value })} />
+          </Field>
+        </form>
+      </Modal>
+    </PageShell>
   );
 }

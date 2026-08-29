@@ -26,13 +26,25 @@ const Contracts = lazy(() => import('@/pages/app/Contracts').then(module => ({ d
 const Profile = lazy(() => import('@/pages/app/Profile').then(module => ({ default: module.Profile })));
 const UserSettings = lazy(() => import('@/pages/app/UserSettings').then(module => ({ default: module.UserSettings })));
 
-const queryClient = new QueryClient();
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      // These lists are small and cheap; a short stale window keeps navigation
+      // instant without serving obviously cold data.
+      staleTime: 30_000,
+      refetchOnWindowFocus: false,
+      // api.ts already redirects on 401, so retrying an auth failure just delays it.
+      retry: (failureCount, error) =>
+        failureCount < 2 && !(error instanceof Error && error.message === 'Unauthorized'),
+    },
+  },
+});
 
 export default function App() {
   return (
     <QueryClientProvider client={queryClient}>
       <BrowserRouter>
-        <Suspense fallback={<LoadingSpinner size="lg" className="min-h-screen bg-signal-bg" />}>
+        <Suspense fallback={<LoadingSpinner size="lg" className="min-h-screen bg-canvas" />}>
           <Routes>
           <Route path="/" element={<Home />} />
           <Route path="/signin" element={<SignIn />} />

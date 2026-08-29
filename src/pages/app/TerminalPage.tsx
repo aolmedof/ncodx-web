@@ -4,7 +4,8 @@ import { Terminal as TerminalIcon, Wifi } from 'lucide-react';
 import { Terminal } from '@xterm/xterm';
 import { FitAddon } from '@xterm/addon-fit';
 import '@xterm/xterm/css/xterm.css';
-import { mockProjects } from '@/lib/mock-data';
+import { useProject } from '@/hooks/queries';
+import { LoadingSpinner } from '@/components/common/LoadingSpinner';
 
 // ─── Mock command processor ───────────────────────────────────────────────────
 const MOCK_FILES = [
@@ -96,8 +97,8 @@ export default function TerminalPage() {
   const historyRef = useRef<string[]>([]);
   const historyIdxRef = useRef<number>(-1);
 
-  const project = mockProjects.find((p) => p.id === projectId);
-  const username = project?.jumpserver_username ?? 'jumpserver';
+  const { data: project, isPending } = useProject(projectId);
+  const username = project?.jumpserverUsername ?? 'jumpserver';
   const projectName = project?.name ?? 'unknown';
 
   useEffect(() => {
@@ -145,7 +146,7 @@ export default function TerminalPage() {
     fitRef.current = fitAddon;
 
     // ─── Welcome banner ───────────────────────────────────────────────────────
-    const g = '\x1b[32m';  // signal-green
+    const g = '\x1b[32m';  // green
     const d = '\x1b[90m';  // dim
     const r = '\x1b[0m';   // reset
     const b = '\x1b[1m';   // bold
@@ -272,30 +273,32 @@ export default function TerminalPage() {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [projectId]);
 
+  if (isPending) {
+    return <LoadingSpinner size="lg" className="py-24" />;
+  }
+
   if (!project) {
     return (
-      <div className="min-h-screen bg-signal-bg flex items-center justify-center text-signal-text-muted font-mono">
+      <div className="flex min-h-64 items-center justify-center text-[13px] text-ink-faint">
         Project not found.
       </div>
     );
   }
 
   return (
-    <div className="flex flex-col h-screen bg-signal-bg font-mono overflow-hidden">
+    <div className="flex h-[calc(100vh-3.25rem)] flex-col overflow-hidden bg-canvas">
       {/* Header */}
-      <div className="shrink-0 flex items-center justify-between px-4 py-2.5 bg-signal-surface border-b border-signal-border">
-        <div className="flex items-center gap-2">
-          <TerminalIcon size={16} className="text-signal-green" />
-          <span className="text-signal-text text-sm font-semibold">
-            Terminal —{' '}
-            <span className="text-signal-green">
-              {projectName}@{username}
-            </span>
+      <div className="flex shrink-0 items-center justify-between gap-4 border-b border-line bg-surface px-4 py-2.5">
+        <div className="flex min-w-0 items-center gap-2">
+          <TerminalIcon size={15} className="shrink-0 text-ink-faint" />
+          <span className="truncate text-[13px] font-medium text-ink">Terminal</span>
+          <span className="truncate font-mono text-[12px] text-ink-faint">
+            {username}@{projectName}
           </span>
         </div>
-        <div className="flex items-center gap-2 text-xs text-signal-text-muted">
-          <Wifi size={13} className="text-signal-green" />
-          <span>WebSocket SSH ready — configure jumpserver URL in project settings</span>
+        <div className="hidden items-center gap-1.5 text-[12px] text-ink-faint md:flex">
+          <Wifi size={12} className="text-brand" />
+          <span>Set the jumpserver URL in project settings to connect over SSH</span>
         </div>
       </div>
 
@@ -303,7 +306,7 @@ export default function TerminalPage() {
       <div
         ref={termRef}
         className="flex-1 overflow-hidden"
-        style={{ background: '#020408', padding: '8px' }}
+        style={{ background: 'var(--color-canvas)', padding: '10px' }}
       />
     </div>
   );

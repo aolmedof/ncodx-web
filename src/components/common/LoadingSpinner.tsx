@@ -1,15 +1,16 @@
-interface Props {
+import { Spinner } from '@/components/ui/States';
+
+export function LoadingSpinner({
+  size = 'md',
+  className = '',
+}: {
   size?: 'sm' | 'md' | 'lg';
   className?: string;
-}
-
-export function LoadingSpinner({ size = 'md', className = '' }: Props) {
-  const sizeMap = { sm: 'w-4 h-4', md: 'w-8 h-8', lg: 'w-12 h-12' };
+}) {
+  const dimension = { sm: 'h-4 w-4', md: 'h-6 w-6', lg: 'h-8 w-8' }[size];
   return (
     <div className={`flex items-center justify-center ${className}`}>
-      <div
-        className={`${sizeMap[size]} border-2 border-primary-200 border-t-primary-600 rounded-full animate-spin`}
-      />
+      <Spinner className={dimension} />
     </div>
   );
 }

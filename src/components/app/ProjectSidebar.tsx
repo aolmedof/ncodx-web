@@ -1,139 +1,137 @@
-import { NavLink, useNavigate } from 'react-router-dom';
+import { NavLink, useNavigate, useParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import {
-  LayoutDashboard,
-  Columns,
-  GitBranch,
-  Rocket,
-  CalendarDays,
-  StickyNote,
-  Bot,
-  KeyRound,
-  TerminalSquare,
-  Settings,
-  ChevronLeft,
-  ChevronRight,
-  Clock,
-  FileText,
-  FileSignature,
-  ArrowLeft,
+  ArrowLeft, Bot, CalendarDays, ChevronLeft, ChevronRight, Clock, Columns,
+  FileSignature, FileText, GitBranch, KeyRound, LayoutDashboard, Rocket,
+  Settings, StickyNote, TerminalSquare,
 } from 'lucide-react';
+import { Skeleton, cn } from '@/components/ui';
 import type { Project } from '@/types';
 
-interface Props {
-  project: Project;
+const PROJECT_NAV = [
+  { key: '',          icon: LayoutDashboard, labelKey: 'app.overview',        fallback: 'Overview' },
+  { key: 'boards',    icon: Columns,         labelKey: 'app.boards',          fallback: 'Boards' },
+  { key: 'repos',     icon: GitBranch,       labelKey: 'app.repos',           fallback: 'Repos' },
+  { key: 'pipelines', icon: Rocket,          labelKey: 'app.pipelines',       fallback: 'Pipelines' },
+  { key: 'calendar',  icon: CalendarDays,    labelKey: 'app.calendar',        fallback: 'Calendar' },
+  { key: 'notes',     icon: StickyNote,      labelKey: 'app.notes',           fallback: 'Notes' },
+  { key: 'ai',        icon: Bot,             labelKey: 'app.aiChat',          fallback: 'Assistant' },
+  { key: 'secrets',   icon: KeyRound,        labelKey: 'app.secrets',         fallback: 'Secrets' },
+  { key: 'terminal',  icon: TerminalSquare,  labelKey: 'app.terminal',        fallback: 'Terminal' },
+  { key: 'settings',  icon: Settings,        labelKey: 'app.projectSettings', fallback: 'Settings' },
+];
+
+const WORKSPACE_NAV = [
+  { path: '/app/timesheets', icon: Clock,         labelKey: 'app.timesheets', fallback: 'Timesheets' },
+  { path: '/app/invoices',   icon: FileText,      labelKey: 'app.invoices',   fallback: 'Invoices' },
+  { path: '/app/contracts',  icon: FileSignature, labelKey: 'app.contracts',  fallback: 'Contracts' },
+];
+
+const linkClass = (collapsed: boolean) => ({ isActive }: { isActive: boolean }) =>
+  cn(
+    'relative mx-2 flex items-center gap-2.5 rounded-md px-2.5 py-[7px] text-[13px] transition-colors',
+    collapsed && 'justify-center px-0',
+    isActive
+      ? 'bg-brand-soft font-medium text-brand'
+      : 'text-ink-dim hover:bg-raised hover:text-ink',
+  );
+
+export function ProjectSidebar({
+  project,
+  loading = false,
+  collapsed,
+  onToggle,
+}: {
+  project?: Project;
+  loading?: boolean;
   collapsed: boolean;
   onToggle: () => void;
-}
-
-const projectNavItems = [
-  { key: '', icon: LayoutDashboard, labelKey: 'app.overview' },
-  { key: 'boards', icon: Columns, labelKey: 'app.boards' },
-  { key: 'repos', icon: GitBranch, labelKey: 'app.repos' },
-  { key: 'pipelines', icon: Rocket, labelKey: 'app.pipelines' },
-  { key: 'calendar', icon: CalendarDays, labelKey: 'app.calendar' },
-  { key: 'notes', icon: StickyNote, labelKey: 'app.notes' },
-  { key: 'ai', icon: Bot, labelKey: 'app.aiChat' },
-  { key: 'secrets', icon: KeyRound, labelKey: 'app.secrets' },
-  { key: 'terminal', icon: TerminalSquare, labelKey: 'app.terminal' },
-  { key: 'settings', icon: Settings, labelKey: 'app.projectSettings' },
-];
-
-const globalNavItems = [
-  { path: '/app/timesheets', icon: Clock, labelKey: 'app.timesheets' },
-  { path: '/app/invoices', icon: FileText, labelKey: 'app.invoices' },
-  { path: '/app/contracts', icon: FileSignature, labelKey: 'app.contracts' },
-];
-
-export function ProjectSidebar({ project, collapsed, onToggle }: Props) {
+}) {
   const { t } = useTranslation();
   const navigate = useNavigate();
-  const base = `/app/p/${project.id}`;
+  const { projectId } = useParams<{ projectId: string }>();
+  const base = `/app/p/${projectId}`;
 
   return (
     <aside
-      className={`${collapsed ? 'w-14' : 'w-52'} shrink-0 bg-signal-surface border-r border-signal-border flex flex-col transition-all duration-200 overflow-hidden`}
+      className={cn(
+        'sticky top-0 flex h-[calc(100vh-3.25rem)] shrink-0 flex-col overflow-hidden',
+        'border-r border-line bg-surface transition-[width] duration-200',
+        collapsed ? 'w-14' : 'w-[216px]',
+      )}
     >
-      {/* Project Header */}
-      <div className={`flex items-center gap-2 px-3 py-3 border-b border-signal-border min-h-[52px] ${collapsed ? 'justify-center' : ''}`}>
-        {!collapsed && (
+      <div
+        className={cn(
+          'flex min-h-[52px] items-center gap-2 border-b border-line px-3',
+          collapsed && 'justify-center px-0',
+        )}
+      >
+        {collapsed ? (
+          <span
+            className="h-2.5 w-2.5 shrink-0 rounded-full"
+            style={{ backgroundColor: project?.color ?? 'var(--color-line-strong)' }}
+          />
+        ) : (
           <>
             <button
               onClick={() => navigate('/app')}
-              className="text-signal-text-muted hover:text-signal-green transition-colors shrink-0"
-              title="Back to projects"
+              title="All projects"
+              aria-label="All projects"
+              className="shrink-0 rounded p-1 text-ink-faint transition-colors hover:bg-raised hover:text-ink"
             >
               <ArrowLeft size={14} />
             </button>
-            <div
-              className="w-2.5 h-2.5 rounded-full shrink-0"
-              style={{ backgroundColor: project.color }}
-            />
-            <span className="text-xs font-semibold text-signal-text truncate flex-1">{project.name}</span>
+            {loading ? (
+              <Skeleton className="h-4 flex-1" />
+            ) : (
+              <>
+                <span
+                  className="h-2.5 w-2.5 shrink-0 rounded-full"
+                  style={{ backgroundColor: project?.color ?? 'var(--color-line-strong)' }}
+                />
+                <span className="flex-1 truncate text-[13px] font-medium text-ink">
+                  {project?.name ?? 'Project'}
+                </span>
+              </>
+            )}
           </>
-        )}
-        {collapsed && (
-          <div
-            className="w-2.5 h-2.5 rounded-full"
-            style={{ backgroundColor: project.color }}
-          />
         )}
       </div>
 
-      {/* Project Nav */}
-      <nav className="flex-1 overflow-y-auto py-2">
-        {projectNavItems.map((item) => {
-          const to = item.key ? `${base}/${item.key}` : base;
-          return (
-            <NavLink
-              key={item.key}
-              to={to}
-              end={item.key === ''}
-              className={({ isActive }) =>
-                `flex items-center gap-3 px-3 py-2 text-xs transition-colors ${
-                  collapsed ? 'justify-center' : ''
-                } ${
-                  isActive
-                    ? 'text-signal-green bg-signal-green-glow border-r-2 border-signal-green'
-                    : 'text-signal-text-dim hover:text-signal-text hover:bg-signal-card'
-                }`
-              }
-              title={collapsed ? t(item.labelKey, item.key) : undefined}
-            >
-              <item.icon size={15} className="shrink-0" />
-              {!collapsed && <span className="truncate">{t(item.labelKey, item.key)}</span>}
-            </NavLink>
-          );
-        })}
+      <nav className="flex-1 space-y-0.5 overflow-y-auto py-2">
+        {PROJECT_NAV.map((item) => (
+          <NavLink
+            key={item.key}
+            to={item.key ? `${base}/${item.key}` : base}
+            end={item.key === ''}
+            className={linkClass(collapsed)}
+            title={collapsed ? t(item.labelKey, item.fallback) : undefined}
+          >
+            <item.icon size={15} className="shrink-0" />
+            {!collapsed && <span className="truncate">{t(item.labelKey, item.fallback)}</span>}
+          </NavLink>
+        ))}
 
-        {/* Global separator */}
-        <div className="my-2 mx-3 border-t border-signal-border" />
+        <div className="!my-2.5 mx-4 border-t border-line" />
+        {!collapsed && <p className="eyebrow px-4 pb-1 pt-0.5">Workspace</p>}
 
-        {globalNavItems.map((item) => (
+        {WORKSPACE_NAV.map((item) => (
           <NavLink
             key={item.path}
             to={item.path}
-            className={({ isActive }) =>
-              `flex items-center gap-3 px-3 py-2 text-xs transition-colors ${
-                collapsed ? 'justify-center' : ''
-              } ${
-                isActive
-                  ? 'text-signal-green bg-signal-green-glow border-r-2 border-signal-green'
-                  : 'text-signal-text-muted hover:text-signal-text-dim hover:bg-signal-card'
-              }`
-            }
-            title={collapsed ? t(item.labelKey, item.path) : undefined}
+            className={linkClass(collapsed)}
+            title={collapsed ? t(item.labelKey, item.fallback) : undefined}
           >
             <item.icon size={15} className="shrink-0" />
-            {!collapsed && <span className="truncate">{t(item.labelKey, item.path)}</span>}
+            {!collapsed && <span className="truncate">{t(item.labelKey, item.fallback)}</span>}
           </NavLink>
         ))}
       </nav>
 
-      {/* Collapse toggle */}
       <button
         onClick={onToggle}
-        className="flex items-center justify-center h-10 border-t border-signal-border text-signal-text-muted hover:text-signal-green transition-colors"
+        aria-label={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
+        className="flex h-10 items-center justify-center border-t border-line text-ink-faint transition-colors hover:bg-raised hover:text-ink"
       >
         {collapsed ? <ChevronRight size={14} /> : <ChevronLeft size={14} />}
       </button>

@@ -1,309 +1,242 @@
-import { useState, useMemo } from 'react';
+import { useMemo, useState } from 'react';
+import { Clock, Plus, Trash2 } from 'lucide-react';
+import { DailyHours } from '@/components/charts/DailyHours';
 import {
-  PieChart, Pie, Cell, BarChart, Bar, XAxis, YAxis,
-  CartesianGrid, Tooltip, ResponsiveContainer, Legend,
-} from 'recharts';
-import { ChevronLeft, ChevronRight, Send, CheckCircle } from 'lucide-react';
-import { mockProjects, mockTimesheetEntries } from '@/lib/mock-data';
-import type { TimesheetEntry } from '@/types';
+  Badge, Button, Card, CardBody, CardHeader, EmptyState, ErrorState, Field, Input,
+  Modal, PageHeader, PageShell, Select, Skeleton, StatTile, Textarea, compact,
+} from '@/components/ui';
+import { timesheetsResource, useProjectMap, useTimesheets } from '@/hooks/queries';
+import { formatDate, formatHours } from '@/lib/format';
 
-const DAY_LABELS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
-
-function getWeekStart(date: Date): Date {
-  const d = new Date(date);
-  const day = d.getDay();
-  const diff = day === 0 ? -6 : 1 - day;
-  d.setDate(d.getDate() + diff);
-  d.setHours(0, 0, 0, 0);
-  return d;
+function todayISO() {
+  return new Date().toISOString().slice(0, 10);
 }
 
-function getWeekDates(weekStart: Date): string[] {
-  return Array.from({ length: 7 }, (_, i) => {
-    const d = new Date(weekStart);
-    d.setDate(d.getDate() + i);
-    return d.toISOString().split('T')[0];
+/** Buckets entries into the trailing 14 days. */
+function buildTrend(entries: Array<{ date: string; hours: number }>) {
+  const byDay = new Map<string, number>();
+  for (const entry of entries) {
+    const key = entry.date.slice(0, 10);
+    byDay.set(key, (byDay.get(key) ?? 0) + entry.hours);
+  }
+  return Array.from({ length: 14 }, (_, i) => {
+    const date = new Date();
+    date.setDate(date.getDate() - (13 - i));
+    const key = date.toISOString().slice(0, 10);
+    return {
+      day: date.toLocaleDateString('en-US', { day: 'numeric', month: 'short' }),
+      hours: byDay.get(key) ?? 0,
+    };
   });
 }
 
-function formatWeekRange(weekStart: Date): string {
-  const end = new Date(weekStart);
-  end.setDate(end.getDate() + 6);
-  const opts: Intl.DateTimeFormatOptions = { month: 'short', day: 'numeric' };
-  return `${weekStart.toLocaleDateString('en-US', opts)} – ${end.toLocaleDateString('en-US', opts)}, ${weekStart.getFullYear()}`;
-}
-
-type HoursMap = Record<string, Record<string, number>>;
-
-function buildInitialHoursForDates(dates: string[]): HoursMap {
-  const map: HoursMap = {};
-  for (const p of mockProjects) {
-    map[p.id] = {};
-    for (const date of dates) {
-      const entry = mockTimesheetEntries.find(
-        (e: TimesheetEntry) => e.projectId === p.id && e.date === date
-      );
-      map[p.id][date] = entry ? entry.hours : 0;
-    }
-  }
-  return map;
-}
-
 export function Timesheets() {
-  const [weekStart, setWeekStart] = useState<Date>(() => getWeekStart(new Date()));
-  const [toast, setToast] = useState<string | null>(null);
+  const { projects, map } = useProjectMap();
+  const [projectFilter, setProjectFilter] = useState('');
+  const { data, isPending, isError, error, refetch } = useTimesheets(
+    projectFilter ? { project_id: projectFilter } : undefined,
+  );
+  const createEntry = timesheetsResource.useCreate();
+  const removeEntry = timesheetsResource.useRemove();
 
-  const weekDates = useMemo(() => getWeekDates(weekStart), [weekStart]);
+  const [logging, setLogging] = useState(false);
+  const [form, setForm] = useState({
+    projectId: '', date: todayISO(), hours: '8', description: '', billable: true,
+  });
 
-  const [hoursMap, setHoursMap] = useState<HoursMap>(() => buildInitialHoursForDates(weekDates));
-
-  const navigateWeek = (direction: -1 | 1) => {
-    const next = new Date(weekStart);
-    next.setDate(next.getDate() + direction * 7);
-    const newDates = getWeekDates(next);
-    setWeekStart(next);
-    setHoursMap(buildInitialHoursForDates(newDates));
-  };
-
-  const goToThisWeek = () => {
-    const now = getWeekStart(new Date());
-    const newDates = getWeekDates(now);
-    setWeekStart(now);
-    setHoursMap(buildInitialHoursForDates(newDates));
-  };
-
-  const handleHoursChange = (projectId: string, date: string, value: string) => {
-    const parsed = parseFloat(value);
-    const hours = isNaN(parsed) ? 0 : Math.min(24, Math.max(0, parsed));
-    setHoursMap((prev) => ({
-      ...prev,
-      [projectId]: { ...prev[projectId], [date]: hours },
-    }));
-  };
-
-  const dayTotals = weekDates.map((date) =>
-    mockProjects.reduce((sum, p) => sum + (hoursMap[p.id]?.[date] ?? 0), 0)
+  const entries = useMemo(
+    () => [...(data ?? [])].sort((a, b) => b.date.localeCompare(a.date)),
+    [data],
   );
 
-  const projectTotals = mockProjects.map((p) =>
-    weekDates.reduce((sum, date) => sum + (hoursMap[p.id]?.[date] ?? 0), 0)
-  );
+  const totalHours = entries.reduce((sum, e) => sum + e.hours, 0);
+  const billableHours = entries.filter((e) => e.billable).reduce((sum, e) => sum + e.hours, 0);
+  const trend = useMemo(() => buildTrend(entries), [entries]);
 
-  const grandTotal = projectTotals.reduce((a, b) => a + b, 0);
-
-  const pieData = mockProjects
-    .map((p, i) => ({ name: p.name, value: projectTotals[i], color: p.color }))
-    .filter((d) => d.value > 0);
-
-  const barData = weekDates.map((date, i) => ({
-    name: DAY_LABELS[i],
-    hours: dayTotals[i],
-  }));
-
-  const showToast = (msg: string) => {
-    setToast(msg);
-    setTimeout(() => setToast(null), 3000);
-  };
-
-  const inputCls =
-    'w-full text-center bg-signal-bg border border-signal-border rounded px-1 py-1.5 text-signal-text text-sm focus:outline-hidden focus:border-signal-border-bright transition-colors';
+  async function handleLog(e: React.FormEvent) {
+    e.preventDefault();
+    const hours = Number(form.hours);
+    if (!form.projectId || !Number.isFinite(hours) || hours <= 0) return;
+    await createEntry.mutateAsync({
+      projectId: form.projectId,
+      date: form.date,
+      hours,
+      description: form.description.trim() || null,
+      billable: form.billable,
+    });
+    setLogging(false);
+    setForm({ projectId: '', date: todayISO(), hours: '8', description: '', billable: true });
+  }
 
   return (
-    <div className="p-6 min-h-screen bg-signal-bg">
-      {/* Toast */}
-      {toast && (
-        <div className="fixed top-5 right-5 z-50 flex items-center gap-2 bg-signal-green/20 border border-signal-green text-signal-green px-4 py-3 rounded-xl shadow-signal-card">
-          <CheckCircle size={16} />
-          <span className="text-sm font-medium">{toast}</span>
-        </div>
-      )}
+    <PageShell>
+      <PageHeader
+        title="Timesheets"
+        description="Time logged across every project."
+        actions={
+          <Button variant="primary" onClick={() => setLogging(true)}>
+            <Plus size={15} />
+            Log time
+          </Button>
+        }
+      />
 
-      {/* Header */}
-      <div className="flex items-center justify-between mb-6">
-        <div>
-          <h2 className="text-xl font-bold text-signal-text">Timesheets</h2>
-          <p className="text-signal-text-muted text-sm mt-0.5">{formatWeekRange(weekStart)}</p>
-        </div>
-        <div className="flex items-center gap-2">
-          <button
-            onClick={() => navigateWeek(-1)}
-            className="p-2 bg-signal-surface border border-signal-border rounded-lg text-signal-text-dim hover:text-signal-text hover:border-signal-border-bright transition-colors"
-          >
-            <ChevronLeft size={16} />
-          </button>
-          <button
-            onClick={goToThisWeek}
-            className="px-3 py-1.5 bg-signal-surface border border-signal-border rounded-lg text-signal-text-dim text-sm hover:text-signal-text hover:border-signal-border-bright transition-colors"
-          >
-            This Week
-          </button>
-          <button
-            onClick={() => navigateWeek(1)}
-            className="p-2 bg-signal-surface border border-signal-border rounded-lg text-signal-text-dim hover:text-signal-text hover:border-signal-border-bright transition-colors"
-          >
-            <ChevronRight size={16} />
-          </button>
-          <button
-            onClick={() => showToast('Semana enviada para aprobación')}
-            className="flex items-center gap-2 ml-2 px-4 py-2 bg-signal-green text-signal-bg rounded-lg text-sm font-semibold hover:opacity-90 transition-opacity"
-          >
-            <Send size={14} />
-            Submit Week
-          </button>
-        </div>
+      <div className="mt-5 grid gap-3 sm:grid-cols-3">
+        {isPending ? (
+          Array.from({ length: 3 }, (_, i) => <Skeleton key={i} className="h-[104px]" />)
+        ) : (
+          <>
+            <StatTile icon={Clock} label="Total hours" value={compact(totalHours)} trend={trend.map((d) => d.hours)} />
+            <StatTile label="Billable hours" value={compact(billableHours)} />
+            <StatTile label="Entries" value={entries.length} />
+          </>
+        )}
       </div>
 
-      {/* Grid */}
-      <div className="bg-signal-surface border border-signal-border rounded-xl overflow-hidden shadow-signal-card mb-6">
-        <div className="overflow-x-auto">
-          <table className="w-full text-sm">
-            <thead>
-              <tr className="border-b border-signal-border">
-                <th className="text-left px-4 py-3 text-signal-text-muted font-medium w-48">Project</th>
-                {weekDates.map((date, i) => (
-                  <th key={date} className="text-center px-2 py-3 text-signal-text-muted font-medium min-w-[90px]">
-                    <div>{DAY_LABELS[i]}</div>
-                    <div className="text-xs text-signal-text-muted font-normal">
-                      {new Date(date + 'T12:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
-                    </div>
-                  </th>
-                ))}
-                <th className="text-center px-3 py-3 text-signal-text-muted font-medium min-w-[70px]">Total</th>
-              </tr>
-            </thead>
-            <tbody>
-              {mockProjects.map((project, pi) => (
-                <tr
-                  key={project.id}
-                  className="border-b border-signal-border hover:bg-signal-card/40 transition-colors"
-                >
-                  <td className="px-4 py-2.5">
-                    <div className="flex items-center gap-2">
-                      <div
-                        className="w-2.5 h-2.5 rounded-full shrink-0"
-                        style={{ backgroundColor: project.color }}
-                      />
-                      <span className="text-signal-text text-sm font-medium truncate max-w-[140px]">
-                        {project.name}
-                      </span>
-                    </div>
-                  </td>
-                  {weekDates.map((date) => {
-                    const val = hoursMap[project.id]?.[date] ?? 0;
-                    return (
-                      <td key={date} className="px-2 py-2">
-                        <input
-                          type="number"
-                          min={0}
-                          max={24}
-                          step={0.5}
-                          value={val}
-                          onChange={(e) => handleHoursChange(project.id, date, e.target.value)}
-                          className={inputCls}
-                          style={val > 0 ? { borderColor: project.color + '80', color: project.color } : {}}
-                        />
-                      </td>
-                    );
-                  })}
-                  <td className="px-3 py-2 text-center">
-                    <span className="text-signal-text font-semibold">{projectTotals[pi].toFixed(1)}</span>
-                  </td>
+      <Card className="mt-3">
+        <CardHeader title="Hours logged" description="Last 14 days" />
+        <CardBody>
+          {isPending ? <Skeleton className="h-[200px] w-full" /> : <DailyHours data={trend} />}
+        </CardBody>
+      </Card>
+
+      <div className="mt-5 flex flex-wrap items-center gap-2">
+        <div className="w-full sm:w-64">
+          <Select value={projectFilter} onChange={(e) => setProjectFilter(e.target.value)}>
+            <option value="">All projects</option>
+            {projects.map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}
+          </Select>
+        </div>
+        {!isPending && <span className="ml-auto text-[13px] text-ink-faint">{entries.length} entries</span>}
+      </div>
+
+      <Card className="mt-3 overflow-hidden">
+        {isPending ? (
+          <CardBody className="space-y-2">
+            {Array.from({ length: 6 }, (_, i) => <Skeleton key={i} className="h-11" />)}
+          </CardBody>
+        ) : isError ? (
+          <ErrorState message={error instanceof Error ? error.message : undefined} onRetry={() => refetch()} />
+        ) : entries.length === 0 ? (
+          <EmptyState
+            icon={Clock}
+            title="No time logged"
+            description="Log your first entry to start tracking billable hours."
+            action={<Button size="sm" variant="primary" onClick={() => setLogging(true)}><Plus size={14} />Log time</Button>}
+          />
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="w-full text-left text-[13px]">
+              <thead>
+                <tr className="border-b border-line text-[12px] text-ink-faint">
+                  <th className="px-4 py-2.5 font-medium">Date</th>
+                  <th className="px-4 py-2.5 font-medium">Project</th>
+                  <th className="px-4 py-2.5 font-medium">Description</th>
+                  <th className="px-4 py-2.5 text-right font-medium">Hours</th>
+                  <th className="px-4 py-2.5 font-medium">Billable</th>
+                  <th className="w-10 px-4 py-2.5" />
                 </tr>
-              ))}
-              {/* Totals row */}
-              <tr className="bg-signal-card border-t-2 border-signal-border-bright">
-                <td className="px-4 py-3 text-signal-text font-semibold">Total</td>
-                {dayTotals.map((total, i) => (
-                  <td key={i} className="px-2 py-3 text-center">
-                    <span className={`font-semibold ${total > 0 ? 'text-signal-green' : 'text-signal-text-muted'}`}>
-                      {total.toFixed(1)}
-                    </span>
-                  </td>
-                ))}
-                <td className="px-3 py-3 text-center">
-                  <span className="text-signal-green font-bold text-base">{grandTotal.toFixed(1)}</span>
-                </td>
-              </tr>
-            </tbody>
-          </table>
-        </div>
-      </div>
+              </thead>
+              <tbody className="divide-y divide-line">
+                {entries.map((entry) => {
+                  const project = map.get(entry.projectId);
+                  return (
+                    <tr key={entry.id} className="group transition-colors hover:bg-raised/50">
+                      <td className="whitespace-nowrap px-4 py-2.5 text-ink-dim">{formatDate(entry.date)}</td>
+                      <td className="px-4 py-2.5">
+                        <span className="flex items-center gap-2">
+                          <span
+                            aria-hidden
+                            className="h-2 w-2 shrink-0 rounded-full"
+                            style={{ backgroundColor: project?.color ?? 'var(--color-line-strong)' }}
+                          />
+                          <span className="truncate text-ink">{project?.name ?? 'Unknown project'}</span>
+                        </span>
+                      </td>
+                      <td className="max-w-xs truncate px-4 py-2.5 text-ink-faint">{entry.description ?? '—'}</td>
+                      <td className="px-4 py-2.5 text-right font-medium text-ink">{formatHours(entry.hours)}</td>
+                      <td className="px-4 py-2.5">
+                        {entry.billable
+                          ? <Badge tone="positive">Billable</Badge>
+                          : <Badge tone="neutral">Internal</Badge>}
+                      </td>
+                      <td className="px-4 py-2.5">
+                        <button
+                          onClick={() => removeEntry.mutate(entry.id)}
+                          aria-label="Delete entry"
+                          className="rounded p-1 text-ink-faint opacity-0 transition hover:bg-critical-soft hover:text-critical group-hover:opacity-100"
+                        >
+                          <Trash2 size={14} />
+                        </button>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </Card>
 
-      {/* Charts */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Pie chart */}
-        <div className="bg-signal-surface border border-signal-border rounded-xl p-5 shadow-signal-card">
-          <h3 className="text-signal-text font-semibold mb-4">Hours by Project</h3>
-          {pieData.length > 0 ? (
-            <ResponsiveContainer width="100%" height={240}>
-              <PieChart>
-                <Pie
-                  data={pieData}
-                  cx="50%"
-                  cy="50%"
-                  innerRadius={60}
-                  outerRadius={100}
-                  paddingAngle={3}
-                  dataKey="value"
-                >
-                  {pieData.map((entry, index) => (
-                    <Cell key={`cell-${index}`} fill={entry.color} />
-                  ))}
-                </Pie>
-                <Tooltip
-                  contentStyle={{
-                    background: '#1a1f2e',
-                    border: '1px solid #2a3040',
-                    borderRadius: '8px',
-                    color: '#c8d0e0',
-                  }}
-                  formatter={(value) => [`${Number(value).toFixed(1)}h`, 'Hours']}
-                />
-                <Legend
-                  formatter={(value) => (
-                    <span style={{ color: '#8a94a8', fontSize: '12px' }}>{value}</span>
-                  )}
-                />
-              </PieChart>
-            </ResponsiveContainer>
-          ) : (
-            <div className="flex items-center justify-center h-60 text-signal-text-muted text-sm">
-              No hours logged this week
-            </div>
-          )}
-        </div>
-
-        {/* Bar chart */}
-        <div className="bg-signal-surface border border-signal-border rounded-xl p-5 shadow-signal-card">
-          <h3 className="text-signal-text font-semibold mb-4">Hours by Day</h3>
-          <ResponsiveContainer width="100%" height={240}>
-            <BarChart data={barData} margin={{ top: 5, right: 10, left: -15, bottom: 5 }}>
-              <CartesianGrid strokeDasharray="3 3" stroke="#2a3040" />
-              <XAxis
-                dataKey="name"
-                tick={{ fill: '#8a94a8', fontSize: 12 }}
-                axisLine={false}
-                tickLine={false}
+      <Modal
+        open={logging}
+        onClose={() => setLogging(false)}
+        title="Log time"
+        footer={
+          <>
+            <Button onClick={() => setLogging(false)}>Cancel</Button>
+            <Button
+              variant="primary" type="submit" form="log-time"
+              loading={createEntry.isPending}
+              disabled={!form.projectId || !Number(form.hours)}
+            >
+              Log entry
+            </Button>
+          </>
+        }
+      >
+        <form id="log-time" onSubmit={handleLog} className="space-y-4">
+          <Field label="Project" required htmlFor="lt-project">
+            <Select
+              id="lt-project"
+              value={form.projectId}
+              onChange={(e) => setForm({ ...form, projectId: e.target.value })}
+            >
+              <option value="">Select a project…</option>
+              {projects.map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}
+            </Select>
+          </Field>
+          <div className="grid grid-cols-2 gap-3">
+            <Field label="Date" htmlFor="lt-date">
+              <Input id="lt-date" type="date" value={form.date} onChange={(e) => setForm({ ...form, date: e.target.value })} />
+            </Field>
+            <Field label="Hours" required htmlFor="lt-hours">
+              <Input
+                id="lt-hours" type="number" min="0.25" step="0.25"
+                value={form.hours}
+                onChange={(e) => setForm({ ...form, hours: e.target.value })}
               />
-              <YAxis
-                tick={{ fill: '#8a94a8', fontSize: 12 }}
-                axisLine={false}
-                tickLine={false}
-              />
-              <Tooltip
-                contentStyle={{
-                  background: '#1a1f2e',
-                  border: '1px solid #2a3040',
-                  borderRadius: '8px',
-                  color: '#c8d0e0',
-                }}
-                formatter={(value) => [`${Number(value).toFixed(1)}h`, 'Hours']}
-              />
-              <Bar dataKey="hours" fill="#22c55e" radius={[4, 4, 0, 0]} />
-            </BarChart>
-          </ResponsiveContainer>
-        </div>
-      </div>
-    </div>
+            </Field>
+          </div>
+          <Field label="Description" htmlFor="lt-desc">
+            <Textarea
+              id="lt-desc" rows={3}
+              value={form.description}
+              onChange={(e) => setForm({ ...form, description: e.target.value })}
+              placeholder="What you worked on."
+            />
+          </Field>
+          <label className="flex cursor-pointer items-center gap-2 text-[13px] text-ink-dim">
+            <input
+              type="checkbox"
+              checked={form.billable}
+              onChange={(e) => setForm({ ...form, billable: e.target.checked })}
+              className="h-4 w-4 accent-[var(--color-brand)]"
+            />
+            Billable to the client
+          </label>
+        </form>
+      </Modal>
+    </PageShell>
   );
 }

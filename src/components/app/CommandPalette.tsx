@@ -1,151 +1,156 @@
-import { useState, useEffect } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useTranslation } from 'react-i18next';
-import { Search, FolderOpen, Columns, GitBranch, Rocket, Clock, FileText, FileSignature, User, Settings, Terminal as TerminalIcon } from 'lucide-react';
-import { mockProjects, mockTasks } from '@/lib/mock-data';
+import {
+  CheckSquare, Clock, FileSignature, FileText, FolderGit2, Search, Settings, User,
+} from 'lucide-react';
+import { useProjects, useTasks } from '@/hooks/queries';
+import { cn } from '@/components/ui';
 
-interface CommandItem {
+interface Item {
   id: string;
   label: string;
-  sublabel?: string;
-  icon: React.ReactNode;
-  action: () => void;
-  category: string;
+  hint?: string;
+  icon: typeof Search;
+  to: string;
+  color?: string;
 }
 
+const STATIC_ITEMS: Item[] = [
+  { id: 'nav-projects',   label: 'All projects', icon: FolderGit2,    to: '/app' },
+  { id: 'nav-timesheets', label: 'Timesheets',   icon: Clock,         to: '/app/timesheets' },
+  { id: 'nav-invoices',   label: 'Invoices',     icon: FileText,      to: '/app/invoices' },
+  { id: 'nav-contracts',  label: 'Contracts',    icon: FileSignature, to: '/app/contracts' },
+  { id: 'nav-profile',    label: 'Profile',      icon: User,          to: '/app/profile' },
+  { id: 'nav-settings',   label: 'Settings',     icon: Settings,      to: '/app/settings' },
+];
+
 export function CommandPalette() {
+  const navigate = useNavigate();
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState('');
-  const [selected, setSelected] = useState(0);
-  const navigate = useNavigate();
-  const { t } = useTranslation();
+  const [cursor, setCursor] = useState(0);
+
+  // Only fetch once the palette has actually been opened.
+  const { data: projects } = useProjects(undefined, { enabled: open });
+  const { data: tasks } = useTasks(undefined, { enabled: open });
 
   useEffect(() => {
-    const handler = (e: KeyboardEvent) => {
-      if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
+    function onKey(e: KeyboardEvent) {
+      if (e.key === 'k' && (e.metaKey || e.ctrlKey)) {
         e.preventDefault();
-        setOpen((prev) => !prev);
-        setQuery('');
-        setSelected(0);
+        setOpen((wasOpen) => {
+          // Opening always starts from a clean slate.
+          if (!wasOpen) {
+            setQuery('');
+            setCursor(0);
+          }
+          return !wasOpen;
+        });
       }
       if (e.key === 'Escape') setOpen(false);
-    };
-    document.addEventListener('keydown', handler);
-    return () => document.removeEventListener('keydown', handler);
+    }
+    document.addEventListener('keydown', onKey);
+    return () => document.removeEventListener('keydown', onKey);
   }, []);
 
-  const go = (path: string) => {
-    navigate(path);
-    setOpen(false);
-  };
+  const items = useMemo(() => {
+    const projectItems: Item[] = (projects ?? []).map((project) => ({
+      id: `project-${project.id}`,
+      label: project.name,
+      hint: project.clientName ?? undefined,
+      icon: FolderGit2,
+      to: `/app/p/${project.id}`,
+      color: project.color,
+    }));
 
-  const allItems: CommandItem[] = [
-    // Projects
-    ...mockProjects.map((p) => ({
-      id: `proj-${p.id}`,
-      label: p.name,
-      sublabel: p.client_name,
-      icon: <FolderOpen size={14} className="text-signal-green" />,
-      action: () => go(`/app/p/${p.id}`),
-      category: t('app.projects', 'Proyectos'),
-    })),
-    // Project sub-pages
-    ...mockProjects.flatMap((p) => [
-      { id: `boards-${p.id}`, label: `${p.name} → Boards`, icon: <Columns size={14} className="text-blue-400" />, action: () => go(`/app/p/${p.id}/boards`), category: t('app.boards', 'Boards') },
-      { id: `repos-${p.id}`, label: `${p.name} → Repos`, icon: <GitBranch size={14} className="text-purple-400" />, action: () => go(`/app/p/${p.id}/repos`), category: 'Repos' },
-      { id: `pipelines-${p.id}`, label: `${p.name} → Pipelines`, icon: <Rocket size={14} className="text-orange-400" />, action: () => go(`/app/p/${p.id}/pipelines`), category: 'Pipelines' },
-      { id: `terminal-${p.id}`, label: `${p.name} → Terminal`, icon: <TerminalIcon size={14} className="text-signal-green" />, action: () => go(`/app/p/${p.id}/terminal`), category: 'Terminal' },
-    ]),
-    // Tasks
-    ...mockTasks.map((task) => ({
+    const taskItems: Item[] = (tasks ?? []).slice(0, 40).map((task) => ({
       id: `task-${task.id}`,
       label: task.title,
-      sublabel: task.projectName,
-      icon: <div className="w-3 h-3 rounded-full" style={{ backgroundColor: task.projectColor }} />,
-      action: () => go(`/app/p/${task.projectId}/boards`),
-      category: t('app.tasks', 'Tareas'),
-    })),
-    // Global pages
-    { id: 'timesheets', label: t('app.timesheets', 'Timesheets'), icon: <Clock size={14} className="text-teal-400" />, action: () => go('/app/timesheets'), category: 'Global' },
-    { id: 'invoices', label: t('app.invoices', 'Invoices'), icon: <FileText size={14} className="text-yellow-400" />, action: () => go('/app/invoices'), category: 'Global' },
-    { id: 'contracts', label: t('app.contracts', 'Contracts'), icon: <FileSignature size={14} className="text-pink-400" />, action: () => go('/app/contracts'), category: 'Global' },
-    { id: 'profile', label: t('app.profile', 'Mi Perfil'), icon: <User size={14} className="text-signal-text-dim" />, action: () => go('/app/profile'), category: 'Global' },
-    { id: 'settings', label: t('app.settings', 'Configuración'), icon: <Settings size={14} className="text-signal-text-dim" />, action: () => go('/app/settings'), category: 'Global' },
-  ];
+      hint: task.status.replace('_', ' '),
+      icon: CheckSquare,
+      to: task.projectId ? `/app/p/${task.projectId}/boards` : '/app',
+    }));
 
-  const filtered = query
-    ? allItems.filter((item) =>
-        item.label.toLowerCase().includes(query.toLowerCase()) ||
-        (item.sublabel ?? '').toLowerCase().includes(query.toLowerCase()) ||
-        item.category.toLowerCase().includes(query.toLowerCase())
-      )
-    : allItems.slice(0, 8);
+    const all = [...projectItems, ...STATIC_ITEMS, ...taskItems];
+    const term = query.trim().toLowerCase();
+    if (!term) return all.slice(0, 12);
+    return all
+      .filter((item) =>
+        item.label.toLowerCase().includes(term) || (item.hint ?? '').toLowerCase().includes(term))
+      .slice(0, 12);
+  }, [projects, tasks, query]);
 
-  useEffect(() => {
-    if (!open) return;
-    const handler = (e: KeyboardEvent) => {
-      if (e.key === 'ArrowDown') { e.preventDefault(); setSelected((s) => Math.min(s + 1, filtered.length - 1)); }
-      if (e.key === 'ArrowUp') { e.preventDefault(); setSelected((s) => Math.max(s - 1, 0)); }
-      if (e.key === 'Enter' && filtered[selected]) { filtered[selected].action(); }
-    };
-    document.addEventListener('keydown', handler);
-    return () => document.removeEventListener('keydown', handler);
-  }, [open, filtered, selected]);
+  function go(item: Item) {
+    setOpen(false);
+    navigate(item.to);
+  }
+
+  function onInputKey(e: React.KeyboardEvent) {
+    if (e.key === 'ArrowDown') {
+      e.preventDefault();
+      setCursor((c) => Math.min(c + 1, items.length - 1));
+    } else if (e.key === 'ArrowUp') {
+      e.preventDefault();
+      setCursor((c) => Math.max(c - 1, 0));
+    } else if (e.key === 'Enter' && items[cursor]) {
+      e.preventDefault();
+      go(items[cursor]);
+    }
+  }
 
   if (!open) return null;
 
   return (
-    <div className="fixed inset-0 z-[100] flex items-start justify-center pt-[20vh] bg-black/60 backdrop-blur-sm" onClick={() => setOpen(false)}>
-      <div className="w-full max-w-xl mx-4 bg-signal-card border border-signal-border rounded-lg shadow-signal-card overflow-hidden" onClick={(e) => e.stopPropagation()}>
-        {/* Search input */}
-        <div className="flex items-center gap-3 px-4 py-3 border-b border-signal-border">
-          <Search size={15} className="text-signal-text-muted shrink-0" />
+    <div className="fixed inset-0 z-100 flex items-start justify-center p-4 pt-[12vh]">
+      <div className="fixed inset-0 animate-fade-in bg-black/70 backdrop-blur-[2px]" onClick={() => setOpen(false)} aria-hidden />
+      <div
+        role="dialog"
+        aria-modal="true"
+        aria-label="Command palette"
+        className="relative z-10 w-full max-w-lg animate-fade-up overflow-hidden rounded-xl border border-line-strong bg-surface shadow-modal"
+      >
+        <div className="flex items-center gap-2.5 border-b border-line px-4">
+          <Search size={15} className="shrink-0 text-ink-faint" />
           <input
             autoFocus
-            type="text"
-            placeholder={t('app.commandPlaceholder', 'Buscar proyectos, tareas, páginas...')}
             value={query}
             onChange={(e) => {
               setQuery(e.target.value);
-              setSelected(0);
+              setCursor(0);
             }}
-            className="flex-1 bg-transparent text-signal-text placeholder-signal-text-muted text-sm focus:outline-hidden font-mono"
+            onKeyDown={onInputKey}
+            placeholder="Search projects, tasks and pages…"
+            className="h-12 flex-1 bg-transparent text-sm text-ink placeholder:text-ink-faint focus:outline-none"
           />
-          <kbd className="text-xs text-signal-text-muted bg-signal-surface px-1.5 py-0.5 rounded border border-signal-border">ESC</kbd>
+          <kbd className="rounded border border-line bg-raised px-1.5 py-0.5 text-[11px] text-ink-faint">esc</kbd>
         </div>
 
-        {/* Results */}
-        <div className="max-h-[50vh] overflow-y-auto py-1">
-          {filtered.length === 0 ? (
-            <div className="px-4 py-8 text-center text-signal-text-muted text-sm">
-              {t('app.noResults', 'Sin resultados para')} "{query}"
-            </div>
-          ) : (
-            filtered.map((item, idx) => (
-              <button
-                key={item.id}
-                onClick={item.action}
-                onMouseEnter={() => setSelected(idx)}
-                className={`w-full flex items-center gap-3 px-4 py-2.5 text-left transition-colors ${
-                  idx === selected ? 'bg-signal-surface text-signal-text' : 'text-signal-text-dim hover:bg-signal-surface'
-                }`}
-              >
-                <span className="shrink-0">{item.icon}</span>
-                <span className="flex-1 min-w-0">
-                  <div className="text-sm truncate">{item.label}</div>
-                  {item.sublabel && <div className="text-xs text-signal-text-muted truncate">{item.sublabel}</div>}
-                </span>
-                <span className="text-xs text-signal-text-muted shrink-0">{item.category}</span>
-              </button>
-            ))
-          )}
-        </div>
-
-        <div className="px-4 py-2 border-t border-signal-border flex items-center gap-4 text-xs text-signal-text-muted">
-          <span>↑↓ {t('app.navigate', 'navegar')}</span>
-          <span>↵ {t('app.select', 'seleccionar')}</span>
-          <span>ESC {t('app.close', 'cerrar')}</span>
-        </div>
+        {items.length === 0 ? (
+          <p className="px-4 py-10 text-center text-[13px] text-ink-faint">No matches for “{query}”.</p>
+        ) : (
+          <ul className="max-h-80 overflow-y-auto py-1.5">
+            {items.map((item, i) => (
+              <li key={item.id}>
+                <button
+                  onMouseEnter={() => setCursor(i)}
+                  onClick={() => go(item)}
+                  className={cn(
+                    'flex w-full items-center gap-2.5 px-4 py-2 text-left transition-colors',
+                    i === cursor ? 'bg-raised' : 'hover:bg-raised/60',
+                  )}
+                >
+                  {item.color ? (
+                    <span aria-hidden className="h-2.5 w-2.5 shrink-0 rounded-full" style={{ backgroundColor: item.color }} />
+                  ) : (
+                    <item.icon size={14} className="shrink-0 text-ink-faint" />
+                  )}
+                  <span className="min-w-0 flex-1 truncate text-[13px] text-ink">{item.label}</span>
+                  {item.hint && <span className="shrink-0 text-[12px] capitalize text-ink-faint">{item.hint}</span>}
+                </button>
+              </li>
+            ))}
+          </ul>
+        )}
       </div>
     </div>
   );

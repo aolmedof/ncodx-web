@@ -1,3 +1,12 @@
+/* ---------------------------------------------------------------------------
+ * Wire types.
+ *
+ * These mirror exactly what the API returns — camelCase throughout. Anything the
+ * UI needs but the API does not send (a project's name on a task, a colour on a
+ * timesheet row) is joined client-side from the projects list rather than being
+ * declared here, so this file stays an honest description of the wire format.
+ * ------------------------------------------------------------------------- */
+
 // ─── Auth ────────────────────────────────────────────────────────────────────
 export interface User {
   id: string;
@@ -34,33 +43,30 @@ export type ProjectStatus = 'active' | 'paused' | 'completed' | 'archived';
 
 export interface Project {
   id: string;
+  userId: string;
   name: string;
-  description: string;
+  description: string | null;
   color: string;
-  icon?: string;
+  icon: string | null;
   status: ProjectStatus;
-  taskCount: number;
-  completedTaskCount: number;
+  clientName: string | null;
+  clientEmail: string | null;
+  hourlyRate: number | null;
+  monthlyRate: number | null;
+  currency: string | null;
+  startDate: string | null;
+  endDate: string | null;
+  azureDevopsOrg: string | null;
+  azureDevopsProject: string | null;
+  githubRepo: string | null;
+  awsAccountId: string | null;
+  awsRegion: string | null;
+  jumpserverUsername: string | null;
   createdAt: string;
   updatedAt: string;
-  dueDate?: string;
-  startDate?: string;
-  endDate?: string;
-  members: string[];
-  tags: string[];
-  client_name?: string;
-  client_email?: string;
-  hourly_rate?: number;
-  monthly_rate?: number;
-  currency?: string;
-  github_repo?: string;
-  azure_devops_org?: string;
-  azure_devops_project?: string;
-  aws_account_id?: string;
-  aws_region?: string;
-  jumpserver_username?: string;
-  hoursThisWeek?: number;
 }
+
+export type ProjectInput = Partial<Omit<Project, 'id' | 'userId' | 'createdAt' | 'updatedAt'>>;
 
 // ─── Tasks ───────────────────────────────────────────────────────────────────
 export type TaskPriority = 'low' | 'medium' | 'high' | 'urgent';
@@ -68,33 +74,36 @@ export type TaskStatus = 'todo' | 'in_progress' | 'review' | 'done';
 
 export interface Task {
   id: string;
+  userId: string;
+  projectId: string | null;
   title: string;
-  description: string;
+  description: string | null;
   status: TaskStatus;
   priority: TaskPriority;
-  projectId: string;
-  projectName: string;
-  projectColor: string;
-  assignee?: string;
-  dueDate?: string;
+  position: number;
+  dueDate: string | null;
   createdAt: string;
   updatedAt: string;
-  tags: string[];
 }
+
+export type TaskInput = Partial<Omit<Task, 'id' | 'userId' | 'createdAt' | 'updatedAt'>>;
 
 // ─── Calendar ────────────────────────────────────────────────────────────────
 export type CalendarSource = 'internal' | 'google' | 'outlook';
 
 export interface CalendarEvent {
   id: string;
+  userId: string;
+  connectionId: string | null;
   title: string;
-  start: Date;
-  end: Date;
-  description?: string;
+  description: string | null;
+  startAt: string;
+  endAt: string;
+  allDay: boolean;
+  location: string | null;
   source: CalendarSource;
-  color: string;
-  allDay?: boolean;
-  projectId?: string;
+  createdAt: string;
+  updatedAt: string;
 }
 
 export interface CalendarConnection {
@@ -106,52 +115,46 @@ export interface CalendarConnection {
   updatedAt: string;
 }
 
-// ─── Notes (Post-its) ────────────────────────────────────────────────────────
-export type NoteColor = 'yellow' | 'pink' | 'green' | 'blue' | 'orange';
-
+// ─── Notes ───────────────────────────────────────────────────────────────────
 export interface Note {
   id: string;
+  userId: string;
   title: string;
   content: string;
-  color: NoteColor;
+  /** Hex string chosen by the user, not a fixed enum. */
+  color: string;
   pinned: boolean;
   posX: number;
   posY: number;
-  projectId?: string;
   createdAt: string;
   updatedAt: string;
 }
 
-// ─── AI Chat ─────────────────────────────────────────────────────────────────
-export interface ChatMessage {
+// ─── AI chat ─────────────────────────────────────────────────────────────────
+export interface AiMessage {
   id: string;
+  conversationId: string;
   role: 'user' | 'assistant';
   content: string;
-  timestamp: string;
+  createdAt: string;
 }
 
-export interface ChatConversation {
+export interface AiConversation {
   id: string;
+  userId: string;
   title: string;
-  messages: ChatMessage[];
-  projectId?: string;
+  messages: AiMessage[];
   createdAt: string;
   updatedAt: string;
 }
 
-export type AiMessage = ChatMessage;
-export type AiConversation = ChatConversation;
-
 // ─── Secrets ─────────────────────────────────────────────────────────────────
-export type SecretCategory = 'api_key' | 'password' | 'token' | 'other';
-
+/** The list endpoint deliberately omits `value`; only the detail route returns it. */
 export interface Secret {
   id: string;
   name: string;
-  value: string;
-  category: SecretCategory;
-  description?: string;
-  projectId?: string;
+  category: string;
+  value?: string;
   createdAt: string;
   updatedAt: string;
 }
@@ -159,35 +162,13 @@ export interface Secret {
 // ─── Goals ───────────────────────────────────────────────────────────────────
 export interface Goal {
   id: string;
+  userId: string;
   title: string;
-  description?: string;
-  status: string;
+  description: string | null;
   progress: number;
-  dueDate?: string;
-  userId: string;
+  targetDate: string | null;
   createdAt: string;
   updatedAt: string;
-}
-
-// ─── Shopping ────────────────────────────────────────────────────────────────
-export interface ShoppingItem {
-  id: string;
-  name: string;
-  quantity: number;
-  unit?: string;
-  checked: boolean;
-  category?: string;
-  userId: string;
-  createdAt: string;
-  updatedAt: string;
-}
-
-// ─── Dashboard Stats ─────────────────────────────────────────────────────────
-export interface DashboardStats {
-  totalTasks: number;
-  completedToday: number;
-  pending: number;
-  activeProjects: number;
 }
 
 // ─── Contracts ───────────────────────────────────────────────────────────────
@@ -196,76 +177,110 @@ export type ContractStatus = 'active' | 'paused' | 'completed' | 'cancelled';
 
 export interface Contract {
   id: string;
+  userId: string;
   projectId: string;
-  projectName: string;
   title: string;
   type: ContractType;
   rate: number;
   currency: string;
   startDate: string;
-  endDate?: string;
+  endDate: string | null;
   status: ContractStatus;
-  document_url?: string;
-  notes?: string;
+  documentUrl: string | null;
+  notes: string | null;
   createdAt: string;
   updatedAt: string;
 }
 
-// ─── Timesheets ───────────────────────────────────────────────────────────────
+// ─── Timesheets ──────────────────────────────────────────────────────────────
 export interface TimesheetEntry {
   id: string;
+  userId: string;
   projectId: string;
-  projectName: string;
-  projectColor: string;
-  contractId?: string;
+  contractId: string | null;
   date: string;
   hours: number;
-  description?: string;
+  description: string | null;
   billable: boolean;
   approved: boolean;
+  approvedBy: string | null;
+  approvedAt: string | null;
   createdAt: string;
   updatedAt: string;
 }
 
-// ─── Invoices ─────────────────────────────────────────────────────────────────
+export interface TimesheetSummary {
+  totalHours: number;
+  billableHours: number;
+  totalEntries: number;
+  byProject: Array<{ projectId: string; hours: number; entries: number }>;
+}
+
+// ─── Invoices ────────────────────────────────────────────────────────────────
 export type InvoiceStatus = 'draft' | 'sent' | 'paid' | 'overdue' | 'cancelled';
 
 export interface InvoiceItem {
   id: string;
+  invoiceId?: string;
   description: string;
   quantity: number;
-  unit_price: number;
+  unitPrice: number;
   total: number;
 }
 
 export interface Invoice {
   id: string;
+  userId: string;
   projectId: string;
-  projectName: string;
-  invoice_number: string;
-  issue_date: string;
-  due_date: string;
+  invoiceNumber: string;
+  issueDate: string;
+  dueDate: string;
   subtotal: number;
-  tax_rate: number;
-  tax_amount: number;
+  taxRate: number;
+  taxAmount: number;
   total: number;
   currency: string;
   status: InvoiceStatus;
-  notes?: string;
-  items: InvoiceItem[];
+  notes: string | null;
+  pdfUrl: string | null;
+  /** Present on the detail route; absent from the list. */
+  items?: InvoiceItem[];
   createdAt: string;
   updatedAt: string;
 }
 
-// ─── Repos ────────────────────────────────────────────────────────────────────
+// ─── Integrations ────────────────────────────────────────────────────────────
+export interface Integration {
+  id: string;
+  projectId: string;
+  provider: string;
+  tokenExpiry: string | null;
+  scopes: string | null;
+  metadataJson: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+// ─── Dashboard ───────────────────────────────────────────────────────────────
+export interface DashboardOverview {
+  projects: { total: number; active: number };
+  tasks: { total: number; byStatus: Partial<Record<TaskStatus, number>> };
+  time: { hoursThisMonth: number; totalBillableHours: number; totalEntries: number };
+  invoices: { draft: number; sent: number; paid: number; totalPending: number; totalPaid: number };
+  contracts: { total: number; active: number };
+  goals: { total: number; avgProgress: number };
+  upcomingEvents: CalendarEvent[];
+}
+
+// ─── Repos & pipelines (proxy routes) ────────────────────────────────────────
 export interface RepoBranch {
   name: string;
-  sha: string;
+  sha?: string;
   isDefault?: boolean;
   protected?: boolean;
   lastCommit?: string;
   updatedAt?: string;
-  author: string;
+  author?: string;
 }
 
 export interface RepoCommit {
@@ -273,7 +288,7 @@ export interface RepoCommit {
   message: string;
   author: string;
   date: string;
-  branch: string;
+  branch?: string;
 }
 
 export interface RepoPR {
@@ -281,13 +296,12 @@ export interface RepoPR {
   title: string;
   author: string;
   status: 'open' | 'merged' | 'closed';
-  branch: string;
-  targetBranch: string;
+  branch?: string;
+  targetBranch?: string;
   createdAt: string;
-  reviewers: string[];
+  reviewers?: string[];
 }
 
-// ─── Pipelines ────────────────────────────────────────────────────────────────
 export type PipelineStatus = 'success' | 'failed' | 'running' | 'pending' | 'queued' | 'cancelled';
 export type PipelineProvider = 'azure' | 'aws' | 'github';
 

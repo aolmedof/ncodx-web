@@ -1,182 +1,158 @@
-import { useState, useRef } from 'react';
-import { useTranslation } from 'react-i18next';
-import { Camera, Save, CheckCircle, User } from 'lucide-react';
-import { useAuth } from '@/hooks/useAuth';
-import { saveUser } from '@/lib/auth';
-import type { User as UserType } from '@/types';
+import { useState } from 'react';
+import { Check } from 'lucide-react';
+import {
+  Button, Card, CardBody, CardHeader, ErrorState, Field, Input, PageHeader,
+  PageShell, Skeleton,
+} from '@/components/ui';
+import { useMe, useUpdateMe } from '@/hooks/queries';
+import type { User } from '@/types';
 
-const FIELD_CLASS = "w-full px-3 py-2 bg-signal-card border border-signal-border text-signal-text placeholder-signal-text-muted text-sm rounded focus:outline-hidden focus:border-signal-green transition-colors font-mono";
-const LABEL_CLASS = "block text-xs text-signal-text-dim mb-1.5 uppercase tracking-wider";
-const READONLY_CLASS = "w-full px-3 py-2 bg-signal-surface border border-signal-border text-signal-text-dim text-sm rounded font-mono cursor-not-allowed";
+function toForm(user: User) {
+  return {
+    fullName: user.full_name ?? user.name ?? '',
+    company: user.company ?? '',
+    taxId: user.tax_id ?? '',
+    phone: user.phone ?? '',
+    address: user.address ?? '',
+    city: user.city ?? '',
+    state: user.state ?? '',
+    country: user.country ?? '',
+    zipCode: user.zip_code ?? '',
+    bankName: user.bank_name ?? '',
+    bankAccount: user.bank_account ?? '',
+    bankRouting: user.bank_routing ?? '',
+    paymentMethod: user.payment_method ?? '',
+    paypalEmail: user.paypal_email ?? '',
+  };
+}
 
-export function Profile() {
-  const { t } = useTranslation();
-  const { user } = useAuth();
-  const [form, setForm] = useState<Partial<UserType>>(user ?? {});
+/** Mounted only once the user has loaded, so the form seeds itself from props
+ *  rather than syncing through an effect. */
+function ProfileForm({ user }: { user: User }) {
+  const updateMe = useUpdateMe();
+  const [form, setForm] = useState(() => toForm(user));
   const [saved, setSaved] = useState(false);
-  const [avatarPreview, setAvatarPreview] = useState<string | undefined>(user?.avatar);
-  const fileRef = useRef<HTMLInputElement>(null);
 
-  if (!user) return null;
+  const set = (key: keyof ReturnType<typeof toForm>) => (e: React.ChangeEvent<HTMLInputElement>) =>
+    setForm((f) => ({ ...f, [key]: e.target.value }));
 
-  const set = (key: keyof UserType, val: string) => setForm((prev) => ({ ...prev, [key]: val }));
-
-  const handleAvatarChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    const reader = new FileReader();
-    reader.onload = () => {
-      const b64 = reader.result as string;
-      setAvatarPreview(b64);
-      setForm((prev) => ({ ...prev, avatar: b64 }));
-    };
-    reader.readAsDataURL(file);
-  };
-
-  const handleSave = (e: React.FormEvent) => {
+  async function handleSave(e: React.FormEvent) {
     e.preventDefault();
-    const updated = { ...user, ...form } as UserType;
-    saveUser(updated);
+    await updateMe.mutateAsync(form);
     setSaved(true);
-    setTimeout(() => setSaved(false), 3000);
-  };
-
-  const initials = (user.name || user.email).charAt(0).toUpperCase();
+    setTimeout(() => setSaved(false), 2000);
+  }
 
   return (
-    <div className="p-6 bg-signal-bg min-h-full font-mono max-w-4xl">
-      <div className="mb-8">
-        <div className="text-signal-text-muted text-xs tracking-widest mb-1">// PERFIL DE USUARIO</div>
-        <h1 className="text-xl font-bold text-signal-text flex items-center gap-2">
-          <User size={18} className="text-signal-green" />
-          {t('app.profile', 'Mi Perfil')}
-        </h1>
-      </div>
+    <>
+      <PageHeader
+        title="Profile"
+        description="These details appear on the invoices you issue."
+        actions={
+          <Button variant="primary" type="submit" form="profile-form" loading={updateMe.isPending}>
+            {saved ? <><Check size={15} />Saved</> : 'Save changes'}
+          </Button>
+        }
+      />
 
-      <form onSubmit={handleSave}>
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-          {/* Avatar column */}
-          <div className="flex flex-col items-center gap-4">
-            <div className="relative">
-              {avatarPreview ? (
-                <img src={avatarPreview} alt="avatar" className="w-28 h-28 rounded-full object-cover border-2 border-signal-border" />
-              ) : (
-                <div className="w-28 h-28 rounded-full bg-signal-card border-2 border-signal-border flex items-center justify-center text-3xl font-bold text-signal-green">
-                  {initials}
-                </div>
-              )}
-              <button type="button" onClick={() => fileRef.current?.click()}
-                className="absolute bottom-0 right-0 w-8 h-8 bg-signal-green rounded-full flex items-center justify-center hover:bg-signal-green-dim transition-colors">
-                <Camera size={14} className="text-signal-bg" />
-              </button>
-              <input ref={fileRef} type="file" accept="image/*" className="hidden" onChange={handleAvatarChange} />
-            </div>
-            <div className="text-center">
-              <div className="text-sm font-semibold text-signal-text">{user.name}</div>
-              <div className="text-xs text-signal-text-muted">{user.email}</div>
-              <div className="mt-1 px-2 py-0.5 bg-signal-green/10 border border-signal-green/30 text-signal-green text-xs rounded inline-block">{user.role}</div>
-            </div>
-          </div>
-
-          {/* Form column */}
-          <div className="lg:col-span-2 space-y-6">
-            {/* Personal Info */}
-            <div className="bg-signal-card border border-signal-border rounded p-5">
-              <div className="text-xs text-signal-text-muted tracking-widest mb-4">// INFORMACIÓN PERSONAL</div>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div>
-                  <label className={LABEL_CLASS}>{t('profile.fullName', 'Nombre Completo')}</label>
-                  <input value={form.full_name ?? ''} onChange={(e) => set('full_name', e.target.value)} placeholder="Nombre completo" className={FIELD_CLASS} />
-                </div>
-                <div>
-                  <label className={LABEL_CLASS}>{t('profile.name', 'Nombre corto / Username')}</label>
-                  <input value={form.name ?? ''} onChange={(e) => set('name', e.target.value)} placeholder="Username" className={FIELD_CLASS} />
-                </div>
-                <div>
-                  <label className={LABEL_CLASS}>{t('auth.email', 'Email')}</label>
-                  <input type="email" value={user.email} readOnly className={READONLY_CLASS} />
-                </div>
-                <div>
-                  <label className={LABEL_CLASS}>{t('profile.phone', 'Teléfono')}</label>
-                  <input value={form.phone ?? ''} onChange={(e) => set('phone', e.target.value)} placeholder="+52 55 1234 5678" className={FIELD_CLASS} />
-                </div>
-                <div className="sm:col-span-2">
-                  <label className={LABEL_CLASS}>{t('profile.company', 'Empresa')}</label>
-                  <input value={form.company ?? ''} onChange={(e) => set('company', e.target.value)} placeholder="Nombre de la empresa" className={FIELD_CLASS} />
-                </div>
+      <form id="profile-form" onSubmit={handleSave} className="mt-5 space-y-3">
+        <Card>
+          <CardHeader title="Identity" />
+          <CardBody className="space-y-4">
+            <div className="flex items-center gap-4">
+              <span className="flex h-14 w-14 items-center justify-center rounded-full bg-brand-soft text-lg font-semibold text-brand">
+                {(user.name ?? '?').charAt(0).toUpperCase()}
+              </span>
+              <div>
+                <p className="font-medium text-ink">{user.name}</p>
+                <p className="text-[13px] text-ink-faint">{user.email}</p>
               </div>
             </div>
-
-            {/* Tax/Legal */}
-            <div className="bg-signal-card border border-signal-border rounded p-5">
-              <div className="text-xs text-signal-text-muted tracking-widest mb-4">// DATOS FISCALES / LEGALES</div>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div>
-                  <label className={LABEL_CLASS}>{t('profile.taxId', 'RFC / Tax ID')}</label>
-                  <input value={form.tax_id ?? ''} onChange={(e) => set('tax_id', e.target.value)} placeholder="XXXXXXXXXXXXX" className={FIELD_CLASS} />
-                </div>
-                <div>
-                  <label className={LABEL_CLASS}>{t('profile.country', 'País')}</label>
-                  <input value={form.country ?? ''} onChange={(e) => set('country', e.target.value)} placeholder="México" className={FIELD_CLASS} />
-                </div>
-                <div className="sm:col-span-2">
-                  <label className={LABEL_CLASS}>{t('profile.address', 'Dirección')}</label>
-                  <input value={form.address ?? ''} onChange={(e) => set('address', e.target.value)} placeholder="Calle y número" className={FIELD_CLASS} />
-                </div>
-                <div>
-                  <label className={LABEL_CLASS}>{t('profile.city', 'Ciudad')}</label>
-                  <input value={form.city ?? ''} onChange={(e) => set('city', e.target.value)} placeholder="Ciudad de México" className={FIELD_CLASS} />
-                </div>
-                <div>
-                  <label className={LABEL_CLASS}>{t('profile.state', 'Estado')}</label>
-                  <input value={form.state ?? ''} onChange={(e) => set('state', e.target.value)} placeholder="CDMX" className={FIELD_CLASS} />
-                </div>
-                <div>
-                  <label className={LABEL_CLASS}>{t('profile.zip', 'Código Postal')}</label>
-                  <input value={form.zip_code ?? ''} onChange={(e) => set('zip_code', e.target.value)} placeholder="06600" className={FIELD_CLASS} />
-                </div>
-              </div>
+            <div className="grid gap-4 sm:grid-cols-2">
+              <Field label="Full name" htmlFor="p-name">
+                <Input id="p-name" value={form.fullName} onChange={set('fullName')} />
+              </Field>
+              <Field label="Phone" htmlFor="p-phone">
+                <Input id="p-phone" value={form.phone} onChange={set('phone')} />
+              </Field>
             </div>
+          </CardBody>
+        </Card>
 
-            {/* Banking */}
-            <div className="bg-signal-card border border-signal-border rounded p-5">
-              <div className="text-xs text-signal-text-muted tracking-widest mb-4">// DATOS BANCARIOS / PAGO</div>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div>
-                  <label className={LABEL_CLASS}>{t('profile.bankName', 'Banco')}</label>
-                  <input value={form.bank_name ?? ''} onChange={(e) => set('bank_name', e.target.value)} placeholder="BBVA, Santander..." className={FIELD_CLASS} />
-                </div>
-                <div>
-                  <label className={LABEL_CLASS}>{t('profile.bankAccount', 'Cuenta / CLABE')}</label>
-                  <input value={form.bank_account ?? ''} onChange={(e) => set('bank_account', e.target.value)} placeholder="18 dígitos" className={FIELD_CLASS} />
-                </div>
-                <div>
-                  <label className={LABEL_CLASS}>{t('profile.bankRouting', 'Routing / SWIFT')}</label>
-                  <input value={form.bank_routing ?? ''} onChange={(e) => set('bank_routing', e.target.value)} placeholder="BBBVMXMM..." className={FIELD_CLASS} />
-                </div>
-                <div>
-                  <label className={LABEL_CLASS}>{t('profile.paymentMethod', 'Método de pago preferido')}</label>
-                  <select value={form.payment_method ?? 'bank_transfer'} onChange={(e) => set('payment_method', e.target.value)}
-                    className={FIELD_CLASS}>
-                    <option value="bank_transfer">Transferencia bancaria</option>
-                    <option value="paypal">PayPal</option>
-                    <option value="crypto">Crypto</option>
-                  </select>
-                </div>
-                <div className="sm:col-span-2">
-                  <label className={LABEL_CLASS}>{t('profile.paypalEmail', 'Email PayPal')}</label>
-                  <input type="email" value={form.paypal_email ?? ''} onChange={(e) => set('paypal_email', e.target.value)} placeholder="tu@paypal.com" className={FIELD_CLASS} />
-                </div>
-              </div>
+        <Card>
+          <CardHeader title="Company" description="Used as the issuer block on invoices." />
+          <CardBody className="space-y-4">
+            <div className="grid gap-4 sm:grid-cols-2">
+              <Field label="Company" htmlFor="p-company">
+                <Input id="p-company" value={form.company} onChange={set('company')} />
+              </Field>
+              <Field label="Tax ID" htmlFor="p-tax">
+                <Input id="p-tax" className="font-mono" value={form.taxId} onChange={set('taxId')} />
+              </Field>
             </div>
+            <Field label="Address" htmlFor="p-address">
+              <Input id="p-address" value={form.address} onChange={set('address')} />
+            </Field>
+            <div className="grid gap-4 sm:grid-cols-4">
+              <Field label="City" htmlFor="p-city"><Input id="p-city" value={form.city} onChange={set('city')} /></Field>
+              <Field label="State" htmlFor="p-state"><Input id="p-state" value={form.state} onChange={set('state')} /></Field>
+              <Field label="Country" htmlFor="p-country"><Input id="p-country" value={form.country} onChange={set('country')} /></Field>
+              <Field label="Postcode" htmlFor="p-zip"><Input id="p-zip" value={form.zipCode} onChange={set('zipCode')} /></Field>
+            </div>
+          </CardBody>
+        </Card>
 
-            <button type="submit"
-              className="flex items-center gap-2 px-6 py-2.5 bg-signal-green hover:bg-signal-green-dim text-signal-bg font-bold text-sm rounded transition-colors">
-              {saved ? <><CheckCircle size={15} /> {t('app.saved', 'Guardado')}</> : <><Save size={15} /> {t('app.save', 'Guardar Cambios')}</>}
-            </button>
-          </div>
-        </div>
+        <Card>
+          <CardHeader title="Payment details" description="Where clients send payment." />
+          <CardBody className="space-y-4">
+            <div className="grid gap-4 sm:grid-cols-2">
+              <Field label="Bank name" htmlFor="p-bank">
+                <Input id="p-bank" value={form.bankName} onChange={set('bankName')} />
+              </Field>
+              <Field label="Payment method" htmlFor="p-method">
+                <Input id="p-method" placeholder="Wire transfer" value={form.paymentMethod} onChange={set('paymentMethod')} />
+              </Field>
+            </div>
+            <div className="grid gap-4 sm:grid-cols-2">
+              <Field label="Account number" htmlFor="p-account">
+                <Input id="p-account" className="font-mono" value={form.bankAccount} onChange={set('bankAccount')} />
+              </Field>
+              <Field label="Routing / SWIFT" htmlFor="p-routing">
+                <Input id="p-routing" className="font-mono" value={form.bankRouting} onChange={set('bankRouting')} />
+              </Field>
+            </div>
+            <Field label="PayPal email" htmlFor="p-paypal">
+              <Input id="p-paypal" type="email" value={form.paypalEmail} onChange={set('paypalEmail')} />
+            </Field>
+          </CardBody>
+        </Card>
       </form>
-    </div>
+    </>
+  );
+}
+
+export function Profile() {
+  const { data: user, isPending, isError, error, refetch } = useMe();
+
+  return (
+    <PageShell>
+      {isError ? (
+        <>
+          <PageHeader title="Profile" />
+          <Card className="mt-5">
+            <ErrorState message={error instanceof Error ? error.message : undefined} onRetry={() => refetch()} />
+          </Card>
+        </>
+      ) : isPending || !user ? (
+        <>
+          <Skeleton className="h-8 w-40" />
+          <div className="mt-5 space-y-3">
+            {Array.from({ length: 3 }, (_, i) => <Skeleton key={i} className="h-56" />)}
+          </div>
+        </>
+      ) : (
+        <ProfileForm user={user} />
+      )}
+    </PageShell>
   );
 }

@@ -1,185 +1,162 @@
-import { useState } from 'react';
-import { useParams } from 'react-router-dom';
-import { useTranslation } from 'react-i18next';
-import { Plus, Pin, Trash2, X, StickyNote } from 'lucide-react';
-import { mockNotes, mockProjects } from '@/lib/mock-data';
-import type { Note, NoteColor } from '@/types';
+import { useMemo, useState } from 'react';
+import { Pin, PinOff, Plus, StickyNote, Trash2 } from 'lucide-react';
+import {
+  Button, Card, EmptyState, ErrorState, Field, Input, Modal, PageHeader,
+  PageShell, SearchInput, Skeleton, Textarea,
+} from '@/components/ui';
+import { notesResource, useNotes } from '@/hooks/queries';
+import { formatRelative } from '@/lib/format';
+import type { Note } from '@/types';
 
-const COLOR_CLASSES: Record<NoteColor, { bg: string; border: string; text: string }> = {
-  yellow: { bg: 'bg-yellow-950/40', border: 'border-yellow-700/40', text: 'text-yellow-200' },
-  pink: { bg: 'bg-pink-950/40', border: 'border-pink-700/40', text: 'text-pink-200' },
-  green: { bg: 'bg-green-950/40', border: 'border-green-700/40', text: 'text-green-200' },
-  blue: { bg: 'bg-blue-950/40', border: 'border-blue-700/40', text: 'text-blue-200' },
-  orange: { bg: 'bg-orange-950/40', border: 'border-orange-700/40', text: 'text-orange-200' },
-};
-const COLOR_DOT: Record<NoteColor, string> = {
-  yellow: 'bg-yellow-400', pink: 'bg-pink-400', green: 'bg-green-400',
-  blue: 'bg-blue-400', orange: 'bg-orange-400',
-};
-const COLORS: NoteColor[] = ['yellow', 'pink', 'green', 'blue', 'orange'];
+const SWATCHES = ['#e3b341', '#3ecf8e', '#58a6ff', '#f2666b', '#a855f7', '#9ea3ab'];
 
 export function Notes() {
-  const { t } = useTranslation();
-  const { projectId } = useParams<{ projectId?: string }>();
-  const project = mockProjects.find((p) => p.id === projectId);
-  const [notes, setNotes] = useState<Note[]>(
-    projectId ? mockNotes.filter((n) => n.projectId === projectId) : mockNotes
-  );
-  const [modalOpen, setModalOpen] = useState(false);
-  const [editNote, setEditNote] = useState<Note | null>(null);
-  const [form, setForm] = useState({ title: '', content: '', color: 'yellow' as NoteColor });
+  const { data, isPending, isError, error, refetch } = useNotes();
+  const createNote = notesResource.useCreate();
+  const updateNote = notesResource.useUpdate();
+  const removeNote = notesResource.useRemove();
 
-  const openNew = () => {
-    setEditNote(null);
-    setForm({ title: '', content: '', color: 'yellow' });
-    setModalOpen(true);
-  };
-  const openEdit = (note: Note) => {
-    setEditNote(note);
+  const [query, setQuery] = useState('');
+  const [editing, setEditing] = useState<Note | null>(null);
+  const [open, setOpen] = useState(false);
+  const [form, setForm] = useState({ title: '', content: '', color: SWATCHES[0] });
+
+  const notes = useMemo(() => {
+    const term = query.trim().toLowerCase();
+    return (data ?? [])
+      .filter((n) => !term || n.title.toLowerCase().includes(term) || n.content.toLowerCase().includes(term))
+      .sort((a, b) =>
+        Number(b.pinned) - Number(a.pinned) ||
+        new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime());
+  }, [data, query]);
+
+  function startCreate() {
+    setEditing(null);
+    setForm({ title: '', content: '', color: SWATCHES[0] });
+    setOpen(true);
+  }
+
+  function startEdit(note: Note) {
+    setEditing(note);
     setForm({ title: note.title, content: note.content, color: note.color });
-    setModalOpen(true);
-  };
+    setOpen(true);
+  }
 
-  const saveNote = (e: React.FormEvent) => {
+  async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
-    if (editNote) {
-      setNotes((prev) => prev.map((n) => n.id === editNote.id ? { ...n, ...form, updatedAt: new Date().toISOString() } : n));
-    } else {
-      const newNote: Note = {
-        id: `note-${Date.now()}`,
-        ...form,
-        pinned: false,
-        posX: Math.random() * 200,
-        posY: Math.random() * 100,
-        projectId,
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString(),
-      };
-      setNotes((prev) => [newNote, ...prev]);
-    }
-    setModalOpen(false);
-  };
-
-  const togglePin = (id: string) => {
-    setNotes((prev) => prev.map((n) => n.id === id ? { ...n, pinned: !n.pinned } : n));
-  };
-  const deleteNote = (id: string) => {
-    setNotes((prev) => prev.filter((n) => n.id !== id));
-  };
-
-  const pinned = notes.filter((n) => n.pinned);
-  const unpinned = notes.filter((n) => !n.pinned);
+    if (!form.title.trim()) return;
+    const payload = { title: form.title.trim(), content: form.content, color: form.color };
+    if (editing) await updateNote.mutateAsync({ id: editing.id, ...payload });
+    else await createNote.mutateAsync({ ...payload, pinned: false, posX: 0, posY: 0 });
+    setOpen(false);
+  }
 
   return (
-    <div className="p-6 bg-signal-bg min-h-full font-mono">
-      <div className="flex items-center justify-between mb-6">
-        <div>
-          <div className="text-signal-text-muted text-xs tracking-widest mb-1">
-            {project ? `// ${project.name.toUpperCase()}` : '// GLOBAL'} NOTES
-          </div>
-          <h1 className="text-xl font-bold text-signal-text flex items-center gap-2">
-            <StickyNote size={18} className="text-signal-green" />
-            {t('notes.title', 'Notas')}
-          </h1>
+    <PageShell>
+      <PageHeader
+        title="Notes"
+        description="Scratchpad for decisions, follow-ups and reminders."
+        actions={<Button variant="primary" onClick={startCreate}><Plus size={15} />New note</Button>}
+      />
+
+      <div className="mt-5">
+        <div className="w-full sm:w-72">
+          <SearchInput value={query} onChange={setQuery} placeholder="Search notes…" />
         </div>
-        <button onClick={openNew}
-          className="flex items-center gap-2 px-3 py-2 bg-signal-green hover:bg-signal-green-dim text-signal-bg font-bold text-xs rounded transition-colors">
-          <Plus size={13} />
-          {t('notes.add', 'Nueva Nota')}
-        </button>
       </div>
 
-      {notes.length === 0 ? (
-        <div className="text-center py-20 text-signal-text-muted text-sm">
-          <StickyNote size={40} className="mx-auto mb-4 opacity-20" />
-          {t('notes.empty', 'No hay notas. Crea una.')}
-        </div>
-      ) : (
-        <>
-          {pinned.length > 0 && (
-            <div className="mb-6">
-              <div className="text-xs text-signal-text-muted tracking-widest mb-3 flex items-center gap-2">
-                <Pin size={11} /> {t('notes.pinned', 'FIJADAS')}
-              </div>
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-                {pinned.map((note) => <NoteCard key={note.id} note={note} onEdit={openEdit} onTogglePin={togglePin} onDelete={deleteNote} />)}
-              </div>
-            </div>
-          )}
-          {unpinned.length > 0 && (
-            <div>
-              {pinned.length > 0 && <div className="text-xs text-signal-text-muted tracking-widest mb-3">{t('notes.others', 'OTRAS')}</div>}
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-                {unpinned.map((note) => <NoteCard key={note.id} note={note} onEdit={openEdit} onTogglePin={togglePin} onDelete={deleteNote} />)}
-              </div>
-            </div>
-          )}
-        </>
-      )}
-
-      {modalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm">
-          <div className="bg-signal-card border border-signal-border rounded w-full max-w-md mx-4 p-6 shadow-signal-card">
-            <div className="flex items-center justify-between mb-6">
-              <h2 className="text-lg font-bold text-signal-text">{editNote ? t('notes.edit', 'Editar Nota') : t('notes.add', 'Nueva Nota')}</h2>
-              <button onClick={() => setModalOpen(false)} className="text-signal-text-muted hover:text-signal-text"><X size={16} /></button>
-            </div>
-            <form onSubmit={saveNote} className="space-y-4">
-              <div>
-                <label className="block text-xs text-signal-text-dim mb-1.5 uppercase tracking-wider">{t('notes.noteTitle', 'Título')}</label>
-                <input required value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })} placeholder="Título de la nota"
-                  className="w-full px-3 py-2 bg-signal-surface border border-signal-border text-signal-text text-sm rounded focus:outline-hidden focus:border-signal-green transition-colors" />
-              </div>
-              <div>
-                <label className="block text-xs text-signal-text-dim mb-1.5 uppercase tracking-wider">{t('notes.content', 'Contenido')}</label>
-                <textarea required rows={5} value={form.content} onChange={(e) => setForm({ ...form, content: e.target.value })} placeholder="Escribe aquí..."
-                  className="w-full px-3 py-2 bg-signal-surface border border-signal-border text-signal-text text-sm rounded focus:outline-hidden focus:border-signal-green transition-colors resize-none" />
-              </div>
-              <div>
-                <label className="block text-xs text-signal-text-dim mb-2 uppercase tracking-wider">{t('notes.color', 'Color')}</label>
-                <div className="flex gap-2">
-                  {COLORS.map((c) => (
-                    <button key={c} type="button" onClick={() => setForm({ ...form, color: c })}
-                      className={`w-7 h-7 rounded-full ${COLOR_DOT[c]} ${form.color === c ? 'ring-2 ring-white ring-offset-2 ring-offset-signal-card' : 'opacity-60 hover:opacity-100'} transition-all`} />
-                  ))}
+      <div className="mt-4">
+        {isPending ? (
+          <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
+            {Array.from({ length: 6 }, (_, i) => <Skeleton key={i} className="h-40" />)}
+          </div>
+        ) : isError ? (
+          <Card><ErrorState message={error instanceof Error ? error.message : undefined} onRetry={() => refetch()} /></Card>
+        ) : notes.length === 0 ? (
+          <Card>
+            <EmptyState
+              icon={StickyNote}
+              title={data?.length ? 'No notes match' : 'No notes yet'}
+              description={data?.length ? 'Try a different search.' : 'Jot down anything you need to remember.'}
+              action={<Button size="sm" variant="primary" onClick={startCreate}><Plus size={14} />New note</Button>}
+            />
+          </Card>
+        ) : (
+          <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
+            {notes.map((note) => (
+              <Card key={note.id} className="group relative overflow-hidden p-4">
+                {/* Colour is decorative here, so it rides a spine rather than the text */}
+                <span aria-hidden className="absolute inset-y-0 left-0 w-1" style={{ backgroundColor: note.color }} />
+                <div className="flex items-start gap-2 pl-2">
+                  <button onClick={() => startEdit(note)} className="min-w-0 flex-1 text-left">
+                    <p className="truncate font-medium text-ink">{note.title}</p>
+                  </button>
+                  <button
+                    onClick={() => updateNote.mutate({ id: note.id, pinned: !note.pinned })}
+                    aria-label={note.pinned ? 'Unpin note' : 'Pin note'}
+                    className={
+                      'shrink-0 rounded p-1 transition ' +
+                      (note.pinned ? 'text-brand' : 'text-ink-faint opacity-0 group-hover:opacity-100 hover:text-ink')
+                    }
+                  >
+                    {note.pinned ? <Pin size={13} /> : <PinOff size={13} />}
+                  </button>
                 </div>
-              </div>
-              <button type="submit" className="w-full px-4 py-2.5 bg-signal-green hover:bg-signal-green-dim text-signal-bg font-bold text-sm rounded transition-colors">
-                {t('app.save', 'Guardar')}
-              </button>
-            </form>
+                <p className="mt-2 line-clamp-5 whitespace-pre-wrap pl-2 text-[13px] leading-relaxed text-ink-dim">
+                  {note.content}
+                </p>
+                <div className="mt-3 flex items-center justify-between pl-2 text-[12px] text-ink-faint">
+                  <span>{formatRelative(note.updatedAt)}</span>
+                  <button
+                    onClick={() => removeNote.mutate(note.id)}
+                    aria-label="Delete note"
+                    className="rounded p-1 opacity-0 transition hover:bg-critical-soft hover:text-critical group-hover:opacity-100"
+                  >
+                    <Trash2 size={13} />
+                  </button>
+                </div>
+              </Card>
+            ))}
           </div>
-        </div>
-      )}
-    </div>
-  );
-}
+        )}
+      </div>
 
-function NoteCard({ note, onEdit, onTogglePin, onDelete }: {
-  note: Note;
-  onEdit: (n: Note) => void;
-  onTogglePin: (id: string) => void;
-  onDelete: (id: string) => void;
-}) {
-  const colors = COLOR_CLASSES[note.color];
-  return (
-    <div className={`group relative rounded border ${colors.bg} ${colors.border} p-4 cursor-pointer hover:scale-[1.02] transition-transform`} onClick={() => onEdit(note)}>
-      <div className="flex items-start justify-between gap-2 mb-2">
-        <h3 className={`text-sm font-semibold ${colors.text} truncate flex-1`}>{note.title}</h3>
-        <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity shrink-0" onClick={(e) => e.stopPropagation()}>
-          <button onClick={() => onTogglePin(note.id)}
-            className={`p-1 rounded hover:bg-black/20 transition-colors ${note.pinned ? colors.text : 'text-signal-text-muted'}`}>
-            <Pin size={11} />
-          </button>
-          <button onClick={() => onDelete(note.id)} className="p-1 rounded hover:bg-black/20 text-signal-text-muted hover:text-red-400 transition-colors">
-            <Trash2 size={11} />
-          </button>
-        </div>
-      </div>
-      <p className="text-xs text-signal-text-dim whitespace-pre-wrap line-clamp-6 leading-relaxed">{note.content}</p>
-      <div className="mt-3 text-xs text-signal-text-muted">
-        {new Date(note.updatedAt).toLocaleDateString()}
-      </div>
-    </div>
+      <Modal
+        open={open}
+        onClose={() => setOpen(false)}
+        title={editing ? 'Edit note' : 'New note'}
+        footer={
+          <>
+            <Button onClick={() => setOpen(false)}>Cancel</Button>
+            <Button variant="primary" type="submit" form="note-form"
+              loading={createNote.isPending || updateNote.isPending} disabled={!form.title.trim()}>
+              {editing ? 'Save' : 'Create note'}
+            </Button>
+          </>
+        }
+      >
+        <form id="note-form" onSubmit={handleSubmit} className="space-y-4">
+          <Field label="Title" required htmlFor="n-title">
+            <Input id="n-title" autoFocus value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })} />
+          </Field>
+          <Field label="Content" htmlFor="n-content">
+            <Textarea id="n-content" rows={6} value={form.content} onChange={(e) => setForm({ ...form, content: e.target.value })} />
+          </Field>
+          <Field label="Colour">
+            <div className="flex gap-2">
+              {SWATCHES.map((color) => (
+                <button
+                  key={color} type="button" aria-label={`Colour ${color}`}
+                  onClick={() => setForm({ ...form, color })}
+                  style={{ backgroundColor: color }}
+                  className={'h-7 w-7 rounded-full transition-transform ' +
+                    (form.color === color ? 'ring-2 ring-brand ring-offset-2 ring-offset-surface' : 'hover:scale-110')}
+                />
+              ))}
+            </div>
+          </Field>
+        </form>
+      </Modal>
+    </PageShell>
   );
 }

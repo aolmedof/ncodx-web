@@ -1,466 +1,245 @@
-import { useState } from 'react';
-import { Plus, X, Pencil, Trash2, CheckCircle, TrendingUp, FileText, DollarSign } from 'lucide-react';
-import { mockContracts, mockProjects } from '@/lib/mock-data';
+import { useMemo, useState } from 'react';
+import { FileSignature, Plus, Trash2 } from 'lucide-react';
+import {
+  Badge, Button, Card, EmptyState, ErrorState, Field, Input, Modal,
+  PageHeader, PageShell, Select, Skeleton, StatTile, Textarea, type Tone,
+} from '@/components/ui';
+import { contractsResource, useContracts, useProjectMap } from '@/hooks/queries';
+import { formatCurrency, formatDate } from '@/lib/format';
 import type { Contract, ContractStatus, ContractType } from '@/types';
 
-// ─── Styles ───────────────────────────────────────────────────────────────────
-const STATUS_STYLES: Record<ContractStatus, string> = {
-  active: 'bg-signal-green/20 text-signal-green border border-signal-green/30',
-  paused: 'bg-amber-900/30 text-amber-300 border border-amber-700/40',
-  completed: 'bg-blue-900/30 text-blue-300 border border-blue-700/40',
-  cancelled: 'bg-slate-700/40 text-slate-400 border border-slate-600/40',
+const STATUS_TONE: Record<ContractStatus, Tone> = {
+  active: 'positive', paused: 'caution', completed: 'info', cancelled: 'neutral',
+};
+const TYPES: ContractType[] = ['hourly', 'monthly', 'fixed', 'retainer'];
+const STATUSES: ContractStatus[] = ['active', 'paused', 'completed', 'cancelled'];
+
+const RATE_SUFFIX: Record<ContractType, string> = {
+  hourly: '/hr', monthly: '/mo', fixed: '', retainer: '/mo',
 };
 
-const TYPE_STYLES: Record<ContractType, string> = {
-  hourly: 'bg-violet-900/30 text-violet-300 border border-violet-700/40',
-  monthly: 'bg-blue-900/30 text-blue-300 border border-blue-700/40',
-  fixed: 'bg-amber-900/30 text-amber-300 border border-amber-700/40',
-  retainer: 'bg-teal-900/30 text-teal-300 border border-teal-700/40',
+const BLANK = {
+  projectId: '', title: '', type: 'hourly' as ContractType, rate: '',
+  currency: 'USD', startDate: new Date().toISOString().slice(0, 10),
+  endDate: '', status: 'active' as ContractStatus, notes: '',
 };
 
-const TYPE_LABELS: Record<ContractType, string> = {
-  hourly: 'Hourly',
-  monthly: 'Monthly',
-  fixed: 'Fixed',
-  retainer: 'Retainer',
-};
-
-// ─── Form state ────────────────────────────────────────────────────────────────
-interface ContractFormState {
-  projectId: string;
-  title: string;
-  type: ContractType;
-  rate: number;
-  currency: string;
-  startDate: string;
-  endDate: string;
-  status: ContractStatus;
-  notes: string;
-}
-
-const emptyForm = (): ContractFormState => ({
-  projectId: mockProjects[0]?.id ?? '',
-  title: '',
-  type: 'hourly',
-  rate: 0,
-  currency: 'USD',
-  startDate: new Date().toISOString().split('T')[0],
-  endDate: '',
-  status: 'active',
-  notes: '',
-});
-
-function contractFromForm(form: ContractFormState, existing?: Contract): Contract {
-  const project = mockProjects.find((p) => p.id === form.projectId);
-  const now = new Date().toISOString();
-  return {
-    id: existing?.id ?? `ct_${Date.now()}`,
-    projectId: form.projectId,
-    projectName: project?.name ?? '',
-    title: form.title,
-    type: form.type,
-    rate: form.rate,
-    currency: form.currency,
-    startDate: form.startDate,
-    endDate: form.endDate || undefined,
-    status: form.status,
-    notes: form.notes || undefined,
-    createdAt: existing?.createdAt ?? now,
-    updatedAt: now,
-  };
-}
-
-function formFromContract(c: Contract): ContractFormState {
-  return {
-    projectId: c.projectId,
-    title: c.title,
-    type: c.type,
-    rate: c.rate,
-    currency: c.currency,
-    startDate: c.startDate,
-    endDate: c.endDate ?? '',
-    status: c.status,
-    notes: c.notes ?? '',
-  };
-}
-
-// ─── Component ────────────────────────────────────────────────────────────────
 export function Contracts() {
-  const [contracts, setContracts] = useState<Contract[]>(mockContracts);
-  const [showModal, setShowModal] = useState(false);
-  const [editingContract, setEditingContract] = useState<Contract | null>(null);
-  const [deleteConfirm, setDeleteConfirm] = useState<string | null>(null);
-  const [form, setForm] = useState<ContractFormState>(emptyForm());
-  const [toast, setToast] = useState<string | null>(null);
+  const { projects, map } = useProjectMap();
+  const [status, setStatus] = useState<'' | ContractStatus>('');
+  const { data, isPending, isError, error, refetch } = useContracts(status ? { status } : undefined);
+  const createContract = contractsResource.useCreate();
+  const updateContract = contractsResource.useUpdate();
+  const removeContract = contractsResource.useRemove();
 
-  const showToast = (msg: string) => {
-    setToast(msg);
-    setTimeout(() => setToast(null), 3000);
-  };
+  const [editing, setEditing] = useState<Contract | null>(null);
+  const [open, setOpen] = useState(false);
+  const [form, setForm] = useState(BLANK);
 
-  const openCreate = () => {
-    setEditingContract(null);
-    setForm(emptyForm());
-    setShowModal(true);
-  };
-
-  const openEdit = (c: Contract) => {
-    setEditingContract(c);
-    setForm(formFromContract(c));
-    setShowModal(true);
-  };
-
-  const handleSave = () => {
-    if (!form.title.trim()) return;
-    if (editingContract) {
-      setContracts((prev) =>
-        prev.map((c) => (c.id === editingContract.id ? contractFromForm(form, editingContract) : c))
-      );
-      showToast('Contract updated');
-    } else {
-      setContracts((prev) => [contractFromForm(form), ...prev]);
-      showToast('Contract created');
-    }
-    setShowModal(false);
-  };
-
-  const handleDelete = (id: string) => {
-    setContracts((prev) => prev.filter((c) => c.id !== id));
-    setDeleteConfirm(null);
-    showToast('Contract deleted');
-  };
-
-  // ─── Summary stats ──────────────────────────────────────────────────────────
-  const activeContracts = contracts.filter((c) => c.status === 'active');
-  const monthlyRevenue = activeContracts
+  const contracts = useMemo(
+    () => [...(data ?? [])].sort((a, b) => b.startDate.localeCompare(a.startDate)),
+    [data],
+  );
+  const active = contracts.filter((c) => c.status === 'active');
+  const monthlyValue = active
     .filter((c) => c.type === 'monthly' || c.type === 'retainer')
-    .reduce((s, c) => s + c.rate, 0);
-  const totalContractValue = contracts.reduce((s, c) => s + c.rate, 0);
+    .reduce((sum, c) => sum + c.rate, 0);
 
-  const inputCls =
-    'w-full px-3 py-2 bg-signal-bg border border-signal-border rounded-lg text-signal-text text-sm focus:outline-hidden focus:border-signal-border-bright transition-colors';
+  function startCreate() {
+    setEditing(null);
+    setForm(BLANK);
+    setOpen(true);
+  }
+
+  function startEdit(contract: Contract) {
+    setEditing(contract);
+    setForm({
+      projectId: contract.projectId,
+      title: contract.title,
+      type: contract.type,
+      rate: String(contract.rate),
+      currency: contract.currency,
+      startDate: contract.startDate.slice(0, 10),
+      endDate: contract.endDate?.slice(0, 10) ?? '',
+      status: contract.status,
+      notes: contract.notes ?? '',
+    });
+    setOpen(true);
+  }
+
+  async function handleSubmit(e: React.FormEvent) {
+    e.preventDefault();
+    const rate = Number(form.rate);
+    if (!form.projectId || !form.title.trim() || !Number.isFinite(rate)) return;
+    const payload = {
+      projectId: form.projectId,
+      title: form.title.trim(),
+      type: form.type,
+      rate,
+      currency: form.currency,
+      startDate: form.startDate,
+      endDate: form.endDate || null,
+      status: form.status,
+      notes: form.notes.trim() || null,
+    };
+    if (editing) await updateContract.mutateAsync({ id: editing.id, ...payload });
+    else await createContract.mutateAsync(payload);
+    setOpen(false);
+  }
+
+  const saving = createContract.isPending || updateContract.isPending;
 
   return (
-    <div className="p-6 min-h-screen bg-signal-bg">
-      {/* Toast */}
-      {toast && (
-        <div className="fixed top-5 right-5 z-50 flex items-center gap-2 bg-signal-green/20 border border-signal-green text-signal-green px-4 py-3 rounded-xl shadow-signal-card">
-          <CheckCircle size={16} />
-          <span className="text-sm font-medium">{toast}</span>
-        </div>
-      )}
+    <PageShell>
+      <PageHeader
+        title="Contracts"
+        description="Rates and terms agreed with each client."
+        actions={<Button variant="primary" onClick={startCreate}><Plus size={15} />New contract</Button>}
+      />
 
-      {/* Header */}
-      <div className="flex items-center justify-between mb-6">
-        <div>
-          <h2 className="text-xl font-bold text-signal-text">Contracts</h2>
-          <p className="text-signal-text-muted text-sm mt-0.5">{contracts.length} contracts total</p>
-        </div>
-        <button
-          onClick={openCreate}
-          className="flex items-center gap-2 px-4 py-2 bg-signal-green text-signal-bg rounded-lg text-sm font-semibold hover:opacity-90 transition-opacity"
-        >
-          <Plus size={15} />
-          New Contract
-        </button>
+      <div className="mt-5 grid gap-3 sm:grid-cols-3">
+        {isPending ? (
+          Array.from({ length: 3 }, (_, i) => <Skeleton key={i} className="h-[104px]" />)
+        ) : (
+          <>
+            <StatTile icon={FileSignature} label="Active contracts" value={active.length} />
+            <StatTile label="Recurring value" value={formatCurrency(monthlyValue, 'USD', { compact: true })} />
+            <StatTile label="Total contracts" value={contracts.length} />
+          </>
+        )}
       </div>
 
-      {/* Summary cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
-        <div className="bg-signal-surface border border-signal-border rounded-xl p-4 shadow-signal-card">
-          <div className="flex items-center gap-2 mb-2">
-            <FileText size={15} className="text-signal-green" />
-            <p className="text-signal-text-muted text-xs">Active Contracts</p>
-          </div>
-          <p className="text-2xl font-bold text-signal-green">{activeContracts.length}</p>
-        </div>
-        <div className="bg-signal-surface border border-signal-border rounded-xl p-4 shadow-signal-card">
-          <div className="flex items-center gap-2 mb-2">
-            <TrendingUp size={15} className="text-blue-400" />
-            <p className="text-signal-text-muted text-xs">Monthly Revenue</p>
-          </div>
-          <p className="text-2xl font-bold text-signal-text">
-            ${monthlyRevenue.toLocaleString()}
-          </p>
-        </div>
-        <div className="bg-signal-surface border border-signal-border rounded-xl p-4 shadow-signal-card">
-          <div className="flex items-center gap-2 mb-2">
-            <DollarSign size={15} className="text-amber-400" />
-            <p className="text-signal-text-muted text-xs">Total Contract Value</p>
-          </div>
-          <p className="text-2xl font-bold text-signal-text">
-            ${totalContractValue.toLocaleString()}
-          </p>
+      <div className="mt-5 flex flex-wrap items-center gap-2">
+        <div className="w-44">
+          <Select value={status} onChange={(e) => setStatus(e.target.value as '' | ContractStatus)}>
+            <option value="">All statuses</option>
+            {STATUSES.map((s) => <option key={s} value={s}>{s[0].toUpperCase() + s.slice(1)}</option>)}
+          </Select>
         </div>
       </div>
 
-      {/* Table */}
-      <div className="bg-signal-surface border border-signal-border rounded-xl overflow-hidden shadow-signal-card">
-        <div className="overflow-x-auto">
-          <table className="w-full text-sm">
-            <thead>
-              <tr className="border-b border-signal-border">
-                {['Project', 'Title', 'Type', 'Rate', 'Period', 'Status', 'Actions'].map((h) => (
-                  <th key={h} className="text-left px-4 py-3 text-signal-text-muted font-medium whitespace-nowrap">
-                    {h}
-                  </th>
-                ))}
-              </tr>
-            </thead>
-            <tbody>
-              {contracts.map((c) => {
-                const project = mockProjects.find((p) => p.id === c.projectId);
-                return (
-                  <tr
-                    key={c.id}
-                    className="border-b border-signal-border hover:bg-signal-card/40 transition-colors"
-                  >
-                    <td className="px-4 py-3">
-                      <div className="flex items-center gap-2">
-                        <div
-                          className="w-2 h-2 rounded-full shrink-0"
-                          style={{ backgroundColor: project?.color ?? '#888' }}
-                        />
-                        <span className="text-signal-text">{c.projectName}</span>
-                      </div>
-                    </td>
-                    <td className="px-4 py-3 text-signal-text">{c.title}</td>
-                    <td className="px-4 py-3">
-                      <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${TYPE_STYLES[c.type]}`}>
-                        {TYPE_LABELS[c.type]}
-                      </span>
-                    </td>
-                    <td className="px-4 py-3 text-signal-text font-semibold">
-                      {c.rate > 0 ? `${c.currency} ${c.rate.toLocaleString()}` : '—'}
-                    </td>
-                    <td className="px-4 py-3 text-signal-text-dim text-xs">
-                      <span>{c.startDate}</span>
-                      {c.endDate && <><br /><span>→ {c.endDate}</span></>}
-                    </td>
-                    <td className="px-4 py-3">
-                      <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${STATUS_STYLES[c.status]}`}>
-                        {c.status.charAt(0).toUpperCase() + c.status.slice(1)}
-                      </span>
-                    </td>
-                    <td className="px-4 py-3">
-                      <div className="flex items-center gap-1">
-                        <button
-                          onClick={() => openEdit(c)}
-                          className="p-1.5 rounded-lg text-signal-text-muted hover:text-signal-text hover:bg-signal-card transition-colors"
-                          title="Edit"
-                        >
-                          <Pencil size={14} />
-                        </button>
-                        <button
-                          onClick={() => setDeleteConfirm(c.id)}
-                          className="p-1.5 rounded-lg text-signal-text-muted hover:text-red-400 hover:bg-signal-card transition-colors"
-                          title="Delete"
-                        >
-                          <Trash2 size={14} />
-                        </button>
-                      </div>
-                    </td>
-                  </tr>
-                );
-              })}
-              {contracts.length === 0 && (
-                <tr>
-                  <td colSpan={7} className="px-4 py-12 text-center text-signal-text-muted">
-                    No contracts yet. Create your first contract.
-                  </td>
-                </tr>
-              )}
-            </tbody>
-          </table>
-        </div>
-      </div>
-
-      {/* Delete confirmation modal */}
-      {deleteConfirm && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
-          <div className="bg-signal-surface border border-signal-border rounded-2xl shadow-signal-card p-6 max-w-sm w-full">
-            <h3 className="text-signal-text font-semibold mb-2">Delete Contract</h3>
-            <p className="text-signal-text-dim text-sm mb-5">
-              Are you sure you want to delete this contract? This action cannot be undone.
-            </p>
-            <div className="flex gap-3">
-              <button
-                onClick={() => setDeleteConfirm(null)}
-                className="flex-1 px-4 py-2 border border-signal-border rounded-lg text-signal-text-dim text-sm hover:border-signal-border-bright transition-colors"
-              >
-                Cancel
-              </button>
-              <button
-                onClick={() => handleDelete(deleteConfirm)}
-                className="flex-1 px-4 py-2 bg-red-600/80 hover:bg-red-600 text-white rounded-lg text-sm font-semibold transition-colors"
-              >
-                Delete
-              </button>
-            </div>
+      <div className="mt-3">
+        {isPending ? (
+          <div className="grid gap-3 md:grid-cols-2">
+            {Array.from({ length: 4 }, (_, i) => <Skeleton key={i} className="h-36" />)}
           </div>
-        </div>
-      )}
+        ) : isError ? (
+          <Card><ErrorState message={error instanceof Error ? error.message : undefined} onRetry={() => refetch()} /></Card>
+        ) : contracts.length === 0 ? (
+          <Card>
+            <EmptyState
+              icon={FileSignature}
+              title="No contracts"
+              description="Record the rate and terms you agreed with a client."
+              action={<Button size="sm" variant="primary" onClick={startCreate}><Plus size={14} />New contract</Button>}
+            />
+          </Card>
+        ) : (
+          <div className="grid gap-3 md:grid-cols-2">
+            {contracts.map((contract) => {
+              const project = map.get(contract.projectId);
+              return (
+                <Card key={contract.id} className="group p-4">
+                  <div className="flex items-start gap-2.5">
+                    <span
+                      aria-hidden
+                      className="mt-1.5 h-2.5 w-2.5 shrink-0 rounded-full"
+                      style={{ backgroundColor: project?.color ?? 'var(--color-line-strong)' }}
+                    />
+                    <div className="min-w-0 flex-1">
+                      <button onClick={() => startEdit(contract)} className="block truncate text-left font-medium text-ink hover:text-brand">
+                        {contract.title}
+                      </button>
+                      <p className="truncate text-[13px] text-ink-faint">{project?.name ?? 'Unknown project'}</p>
+                    </div>
+                    <Badge tone={STATUS_TONE[contract.status]} dot>{contract.status}</Badge>
+                  </div>
 
-      {/* Create/Edit Modal */}
-      {showModal && (
-        <div className="fixed inset-0 z-40 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
-          <div className="bg-signal-surface border border-signal-border rounded-2xl shadow-signal-card w-full max-w-lg max-h-[90vh] overflow-y-auto">
-            <div className="flex items-center justify-between px-6 py-4 border-b border-signal-border">
-              <h3 className="text-signal-text font-semibold text-lg">
-                {editingContract ? 'Edit Contract' : 'New Contract'}
-              </h3>
-              <button
-                onClick={() => setShowModal(false)}
-                className="p-1.5 rounded-lg text-signal-text-muted hover:text-signal-text hover:bg-signal-card transition-colors"
-              >
-                <X size={18} />
-              </button>
-            </div>
+                  <div className="mt-3 flex items-baseline gap-1.5">
+                    <span className="text-lg font-semibold text-ink">
+                      {formatCurrency(contract.rate, contract.currency)}
+                    </span>
+                    <span className="text-[13px] text-ink-faint">
+                      {RATE_SUFFIX[contract.type]} · {contract.type}
+                    </span>
+                  </div>
 
-            <div className="p-6 space-y-4">
-              {/* Project */}
-              <div>
-                <label className="block text-signal-text-dim text-xs mb-1.5">Project</label>
-                <select
-                  value={form.projectId}
-                  onChange={(e) => setForm({ ...form, projectId: e.target.value })}
-                  className={inputCls}
-                >
-                  {mockProjects.map((p) => (
-                    <option key={p.id} value={p.id}>{p.name}</option>
-                  ))}
-                </select>
-              </div>
-
-              {/* Title */}
-              <div>
-                <label className="block text-signal-text-dim text-xs mb-1.5">Title</label>
-                <input
-                  type="text"
-                  value={form.title}
-                  onChange={(e) => setForm({ ...form, title: e.target.value })}
-                  placeholder="Contract title"
-                  className={inputCls}
-                />
-              </div>
-
-              {/* Type */}
-              <div>
-                <label className="block text-signal-text-dim text-xs mb-2">Type</label>
-                <div className="grid grid-cols-4 gap-2">
-                  {(['hourly', 'monthly', 'fixed', 'retainer'] as ContractType[]).map((t) => (
+                  <div className="mt-3 flex items-center justify-between border-t border-line pt-3 text-[12px] text-ink-faint">
+                    <span>{formatDate(contract.startDate)} → {contract.endDate ? formatDate(contract.endDate) : 'ongoing'}</span>
                     <button
-                      key={t}
-                      type="button"
-                      onClick={() => setForm({ ...form, type: t })}
-                      className={`py-2 rounded-lg text-xs font-medium border transition-colors ${
-                        form.type === t
-                          ? TYPE_STYLES[t]
-                          : 'border-signal-border text-signal-text-muted hover:border-signal-border-bright'
-                      }`}
+                      onClick={() => removeContract.mutate(contract.id)}
+                      aria-label="Delete contract"
+                      className="rounded p-1 opacity-0 transition hover:bg-critical-soft hover:text-critical group-hover:opacity-100"
                     >
-                      {TYPE_LABELS[t]}
+                      <Trash2 size={13} />
                     </button>
-                  ))}
-                </div>
-              </div>
-
-              {/* Rate + Currency */}
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="block text-signal-text-dim text-xs mb-1.5">Rate</label>
-                  <input
-                    type="number"
-                    min={0}
-                    step={0.01}
-                    value={form.rate}
-                    onChange={(e) => setForm({ ...form, rate: parseFloat(e.target.value) || 0 })}
-                    className={inputCls}
-                  />
-                </div>
-                <div>
-                  <label className="block text-signal-text-dim text-xs mb-1.5">Currency</label>
-                  <select
-                    value={form.currency}
-                    onChange={(e) => setForm({ ...form, currency: e.target.value })}
-                    className={inputCls}
-                  >
-                    <option value="USD">USD</option>
-                    <option value="EUR">EUR</option>
-                    <option value="MXN">MXN</option>
-                    <option value="GBP">GBP</option>
-                  </select>
-                </div>
-              </div>
-
-              {/* Dates */}
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="block text-signal-text-dim text-xs mb-1.5">Start Date</label>
-                  <input
-                    type="date"
-                    value={form.startDate}
-                    onChange={(e) => setForm({ ...form, startDate: e.target.value })}
-                    className={inputCls}
-                  />
-                </div>
-                <div>
-                  <label className="block text-signal-text-dim text-xs mb-1.5">End Date (optional)</label>
-                  <input
-                    type="date"
-                    value={form.endDate}
-                    onChange={(e) => setForm({ ...form, endDate: e.target.value })}
-                    className={inputCls}
-                  />
-                </div>
-              </div>
-
-              {/* Status */}
-              <div>
-                <label className="block text-signal-text-dim text-xs mb-1.5">Status</label>
-                <select
-                  value={form.status}
-                  onChange={(e) => setForm({ ...form, status: e.target.value as ContractStatus })}
-                  className={inputCls}
-                >
-                  <option value="active">Active</option>
-                  <option value="paused">Paused</option>
-                  <option value="completed">Completed</option>
-                  <option value="cancelled">Cancelled</option>
-                </select>
-              </div>
-
-              {/* Notes */}
-              <div>
-                <label className="block text-signal-text-dim text-xs mb-1.5">Notes (optional)</label>
-                <textarea
-                  value={form.notes}
-                  onChange={(e) => setForm({ ...form, notes: e.target.value })}
-                  rows={3}
-                  placeholder="Scope, terms, or special conditions…"
-                  className={`${inputCls} resize-none`}
-                />
-              </div>
-            </div>
-
-            <div className="flex justify-end gap-3 px-6 py-4 border-t border-signal-border">
-              <button
-                onClick={() => setShowModal(false)}
-                className="px-4 py-2 border border-signal-border rounded-lg text-signal-text-dim text-sm hover:text-signal-text hover:border-signal-border-bright transition-colors"
-              >
-                Cancel
-              </button>
-              <button
-                onClick={handleSave}
-                disabled={!form.title.trim()}
-                className="px-5 py-2 bg-signal-green text-signal-bg rounded-lg text-sm font-semibold hover:opacity-90 disabled:opacity-40 disabled:cursor-not-allowed transition-opacity"
-              >
-                {editingContract ? 'Save Changes' : 'Create Contract'}
-              </button>
-            </div>
+                  </div>
+                </Card>
+              );
+            })}
           </div>
-        </div>
-      )}
-    </div>
+        )}
+      </div>
+
+      <Modal
+        open={open}
+        onClose={() => setOpen(false)}
+        title={editing ? 'Edit contract' : 'New contract'}
+        footer={
+          <>
+            <Button onClick={() => setOpen(false)}>Cancel</Button>
+            <Button variant="primary" type="submit" form="contract-form" loading={saving}
+              disabled={!form.projectId || !form.title.trim() || !form.rate}>
+              {editing ? 'Save changes' : 'Create contract'}
+            </Button>
+          </>
+        }
+      >
+        <form id="contract-form" onSubmit={handleSubmit} className="space-y-4">
+          <Field label="Project" required htmlFor="c-project">
+            <Select id="c-project" value={form.projectId} onChange={(e) => setForm({ ...form, projectId: e.target.value })}>
+              <option value="">Select a project…</option>
+              {projects.map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}
+            </Select>
+          </Field>
+          <Field label="Title" required htmlFor="c-title">
+            <Input id="c-title" value={form.title} placeholder="Monthly retainer 2026"
+              onChange={(e) => setForm({ ...form, title: e.target.value })} />
+          </Field>
+          <div className="grid grid-cols-3 gap-3">
+            <Field label="Type" htmlFor="c-type">
+              <Select id="c-type" value={form.type} onChange={(e) => setForm({ ...form, type: e.target.value as ContractType })}>
+                {TYPES.map((t) => <option key={t} value={t}>{t}</option>)}
+              </Select>
+            </Field>
+            <Field label="Rate" required htmlFor="c-rate">
+              <Input id="c-rate" type="number" min="0" step="0.01" value={form.rate}
+                onChange={(e) => setForm({ ...form, rate: e.target.value })} />
+            </Field>
+            <Field label="Currency" htmlFor="c-currency">
+              <Select id="c-currency" value={form.currency} onChange={(e) => setForm({ ...form, currency: e.target.value })}>
+                <option value="USD">USD</option><option value="EUR">EUR</option><option value="MXN">MXN</option>
+              </Select>
+            </Field>
+          </div>
+          <div className="grid grid-cols-2 gap-3">
+            <Field label="Start date" htmlFor="c-start">
+              <Input id="c-start" type="date" value={form.startDate} onChange={(e) => setForm({ ...form, startDate: e.target.value })} />
+            </Field>
+            <Field label="End date" hint="Leave blank if ongoing" htmlFor="c-end">
+              <Input id="c-end" type="date" value={form.endDate} onChange={(e) => setForm({ ...form, endDate: e.target.value })} />
+            </Field>
+          </div>
+          <Field label="Status" htmlFor="c-status">
+            <Select id="c-status" value={form.status} onChange={(e) => setForm({ ...form, status: e.target.value as ContractStatus })}>
+              {STATUSES.map((s) => <option key={s} value={s}>{s}</option>)}
+            </Select>
+          </Field>
+          <Field label="Notes" htmlFor="c-notes">
+            <Textarea id="c-notes" rows={2} value={form.notes} onChange={(e) => setForm({ ...form, notes: e.target.value })} />
+          </Field>
+        </form>
+      </Modal>
+    </PageShell>
   );
 }
