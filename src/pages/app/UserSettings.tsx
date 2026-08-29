@@ -5,7 +5,7 @@ import { useAuth } from '@/hooks/useAuth';
 
 const SECTION_CLASS = "bg-signal-card border border-signal-border rounded p-5 mb-6";
 const LABEL_CLASS = "block text-xs text-signal-text-dim mb-1.5 uppercase tracking-wider";
-const FIELD_CLASS = "w-full px-3 py-2 bg-signal-surface border border-signal-border text-signal-text placeholder-signal-text-muted text-sm rounded focus:outline-none focus:border-signal-green transition-colors font-mono";
+const FIELD_CLASS = "w-full px-3 py-2 bg-signal-surface border border-signal-border text-signal-text placeholder-signal-text-muted text-sm rounded focus:outline-hidden focus:border-signal-green transition-colors font-mono";
 const TOGGLE_CLASS = "relative inline-flex h-5 w-9 items-center rounded-full transition-colors cursor-pointer";
 
 function Toggle({ enabled, onChange }: { enabled: boolean; onChange: () => void }) {
@@ -28,7 +28,7 @@ export function UserSettings() {
   const [timezone, setTimezone] = useState(user?.timezone || 'America/Mexico_City');
   const [notifications, setNotifications] = useState({ email: true, browser: false, digest: true });
   const [passwords, setPasswords] = useState({ current: '', next: '', confirm: '' });
-  const [apiToken] = useState('ncodx_pat_' + Math.random().toString(36).slice(2, 18));
+  const apiToken = `ncodx_pat_demo_${btoa(user?.id ?? 'anonymous').slice(0, 16)}`;
   const [tokenCopied, setTokenCopied] = useState(false);
   const [saved, setSaved] = useState(false);
   const [pwSaved, setPwSaved] = useState(false);

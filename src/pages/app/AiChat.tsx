@@ -88,7 +88,7 @@ export function AiChat() {
   return (
     <div className="flex h-full bg-signal-bg font-mono">
       {/* Sidebar */}
-      <div className="w-56 flex-shrink-0 bg-signal-surface border-r border-signal-border flex flex-col">
+      <div className="w-56 shrink-0 bg-signal-surface border-r border-signal-border flex flex-col">
         <div className="p-3 border-b border-signal-border">
           <div className="text-xs text-signal-text-muted tracking-widest mb-2">// AI CHAT</div>
           {project && (
@@ -107,10 +107,10 @@ export function AiChat() {
                 activeId === conv.id ? 'bg-signal-card text-signal-text border-r-2 border-signal-green' : 'text-signal-text-dim hover:bg-signal-card hover:text-signal-text'
               }`}
               onClick={() => setActiveId(conv.id)}>
-              <MessageSquare size={12} className="flex-shrink-0" />
+              <MessageSquare size={12} className="shrink-0" />
               <span className="flex-1 text-xs truncate">{conv.title}</span>
               <button onClick={(e) => { e.stopPropagation(); handleDeleteConv(conv.id); }}
-                className="opacity-0 group-hover:opacity-100 text-signal-text-muted hover:text-red-400 transition-all flex-shrink-0">
+                className="opacity-0 group-hover:opacity-100 text-signal-text-muted hover:text-red-400 transition-all shrink-0">
                 <X size={11} />
               </button>
             </div>
@@ -124,7 +124,7 @@ export function AiChat() {
       {/* Chat area */}
       <div className="flex-1 flex flex-col min-w-0">
         {/* Header */}
-        <div className="h-12 border-b border-signal-border px-6 flex items-center gap-2 flex-shrink-0">
+        <div className="h-12 border-b border-signal-border px-6 flex items-center gap-2 shrink-0">
           <Bot size={16} className="text-signal-green" />
           <span className="text-sm font-semibold text-signal-text">
             {activeConv?.title || t('ai.selectConversation', 'Selecciona una conversación')}
@@ -163,7 +163,7 @@ export function AiChat() {
             activeConv.messages.map((msg) => (
               <div key={msg.id} className={`flex gap-3 ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
                 {msg.role === 'assistant' && (
-                  <div className="w-7 h-7 rounded bg-signal-green/20 border border-signal-green/30 flex items-center justify-center flex-shrink-0 mt-0.5">
+                  <div className="w-7 h-7 rounded bg-signal-green/20 border border-signal-green/30 flex items-center justify-center shrink-0 mt-0.5">
                     <Bot size={13} className="text-signal-green" />
                   </div>
                 )}
@@ -178,7 +178,7 @@ export function AiChat() {
                   </div>
                 </div>
                 {msg.role === 'user' && (
-                  <div className="w-7 h-7 rounded bg-signal-card border border-signal-border flex items-center justify-center flex-shrink-0 mt-0.5">
+                  <div className="w-7 h-7 rounded bg-signal-card border border-signal-border flex items-center justify-center shrink-0 mt-0.5">
                     <User size={13} className="text-signal-text-dim" />
                   </div>
                 )}
@@ -187,7 +187,7 @@ export function AiChat() {
           )}
           {isThinking && (
             <div className="flex gap-3 justify-start">
-              <div className="w-7 h-7 rounded bg-signal-green/20 border border-signal-green/30 flex items-center justify-center flex-shrink-0">
+              <div className="w-7 h-7 rounded bg-signal-green/20 border border-signal-green/30 flex items-center justify-center shrink-0">
                 <Bot size={13} className="text-signal-green" />
               </div>
               <div className="bg-signal-card border border-signal-border px-4 py-3 rounded flex items-center gap-2">
@@ -213,10 +213,10 @@ export function AiChat() {
               onKeyDown={(e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleSend(); } }}
               placeholder={project ? `${t('ai.askAbout', 'Pregunta sobre')} ${project.name}...` : t('ai.typeMessage', 'Escribe un mensaje...')}
               disabled={!activeId || isThinking}
-              className="flex-1 bg-transparent px-4 py-3 text-sm text-signal-text placeholder-signal-text-muted focus:outline-none disabled:opacity-50"
+              className="flex-1 bg-transparent px-4 py-3 text-sm text-signal-text placeholder-signal-text-muted focus:outline-hidden disabled:opacity-50"
             />
             <button onClick={handleSend} disabled={!input.trim() || !activeId || isThinking}
-              className="px-4 text-signal-green hover:text-signal-text disabled:opacity-30 transition-colors flex-shrink-0">
+              className="px-4 text-signal-green hover:text-signal-text disabled:opacity-30 transition-colors shrink-0">
               <Send size={15} />
             </button>
           </div>

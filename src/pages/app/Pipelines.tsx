@@ -86,7 +86,7 @@ function PipelineCard({ pipeline }: { pipeline: Pipeline }) {
     <div className="bg-signal-card border border-signal-border hover:border-signal-border-bright rounded-xl p-4 shadow-signal-card transition-colors">
       <div className="flex items-start gap-3">
         {/* Status dot */}
-        <div className="flex-shrink-0 mt-1">
+        <div className="shrink-0 mt-1">
           <div className={`w-2.5 h-2.5 rounded-full ${status.dotClass}`} />
         </div>
 
@@ -95,7 +95,7 @@ function PipelineCard({ pipeline }: { pipeline: Pipeline }) {
           <div className="flex items-center justify-between gap-3 mb-2">
             <code className="text-signal-text font-semibold text-sm truncate">{pipeline.name}</code>
             <span
-              className={`flex-shrink-0 inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium border ${status.badgeClass}`}
+              className={`shrink-0 inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium border ${status.badgeClass}`}
             >
               <StatusIcon size={11} className={pipeline.status === 'running' ? 'animate-spin' : ''} />
               {status.label}
@@ -121,7 +121,7 @@ function PipelineCard({ pipeline }: { pipeline: Pipeline }) {
           {/* Commit message */}
           {(pipeline.commitMessage ?? pipeline.commit) && (
             <div className="flex items-start gap-1.5 mb-2">
-              <MessageSquare size={11} className="text-signal-text-muted flex-shrink-0 mt-0.5" />
+              <MessageSquare size={11} className="text-signal-text-muted shrink-0 mt-0.5" />
               <span className="text-signal-text-muted text-xs truncate">
                 {pipeline.commitMessage ?? pipeline.commit}
               </span>

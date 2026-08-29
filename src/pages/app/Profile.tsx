@@ -5,7 +5,7 @@ import { useAuth } from '@/hooks/useAuth';
 import { saveUser } from '@/lib/auth';
 import type { User as UserType } from '@/types';
 
-const FIELD_CLASS = "w-full px-3 py-2 bg-signal-card border border-signal-border text-signal-text placeholder-signal-text-muted text-sm rounded focus:outline-none focus:border-signal-green transition-colors font-mono";
+const FIELD_CLASS = "w-full px-3 py-2 bg-signal-card border border-signal-border text-signal-text placeholder-signal-text-muted text-sm rounded focus:outline-hidden focus:border-signal-green transition-colors font-mono";
 const LABEL_CLASS = "block text-xs text-signal-text-dim mb-1.5 uppercase tracking-wider";
 const READONLY_CLASS = "w-full px-3 py-2 bg-signal-surface border border-signal-border text-signal-text-dim text-sm rounded font-mono cursor-not-allowed";
 

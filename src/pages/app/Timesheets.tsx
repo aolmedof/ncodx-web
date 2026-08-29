@@ -106,7 +106,7 @@ export function Timesheets() {
   };
 
   const inputCls =
-    'w-full text-center bg-signal-bg border border-signal-border rounded px-1 py-1.5 text-signal-text text-sm focus:outline-none focus:border-signal-border-bright transition-colors';
+    'w-full text-center bg-signal-bg border border-signal-border rounded px-1 py-1.5 text-signal-text text-sm focus:outline-hidden focus:border-signal-border-bright transition-colors';
 
   return (
     <div className="p-6 min-h-screen bg-signal-bg">
@@ -180,7 +180,7 @@ export function Timesheets() {
                   <td className="px-4 py-2.5">
                     <div className="flex items-center gap-2">
                       <div
-                        className="w-2.5 h-2.5 rounded-full flex-shrink-0"
+                        className="w-2.5 h-2.5 rounded-full shrink-0"
                         style={{ backgroundColor: project.color }}
                       />
                       <span className="text-signal-text text-sm font-medium truncate max-w-[140px]">

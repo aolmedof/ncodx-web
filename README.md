@@ -12,14 +12,16 @@ npm run dev
 
 Runs at http://localhost:5173
 
-**Demo credentials:** `demo@ncodx.com` / `password123`
+Authentication uses the configured API. Local fallback credentials are available
+only when `VITE_ENABLE_DEMO_AUTH=true` is explicitly enabled.
 
 ## Environment variables
 
 | Variable | Description | Default |
 |---|---|---|
-| `VITE_API_BASE_URL` | Backend API base URL | `http://localhost:3001` |
+| `VITE_API_BASE_URL` | Backend API base URL (required unless demo auth is enabled) | — |
 | `VITE_DEFAULT_LOCALE` | Default language (`es` or `en`) | `es` |
+| `VITE_ENABLE_DEMO_AUTH` | Allow local demo-only credential fallback | `false` |
 
 ## Project structure
 
@@ -88,4 +90,3 @@ npm run build
 - @dnd-kit (drag & drop)
 - react-big-calendar
 - Lucide React
-- date-fns v3

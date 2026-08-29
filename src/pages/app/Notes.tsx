@@ -128,12 +128,12 @@ export function Notes() {
               <div>
                 <label className="block text-xs text-signal-text-dim mb-1.5 uppercase tracking-wider">{t('notes.noteTitle', 'Título')}</label>
                 <input required value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })} placeholder="Título de la nota"
-                  className="w-full px-3 py-2 bg-signal-surface border border-signal-border text-signal-text text-sm rounded focus:outline-none focus:border-signal-green transition-colors" />
+                  className="w-full px-3 py-2 bg-signal-surface border border-signal-border text-signal-text text-sm rounded focus:outline-hidden focus:border-signal-green transition-colors" />
               </div>
               <div>
                 <label className="block text-xs text-signal-text-dim mb-1.5 uppercase tracking-wider">{t('notes.content', 'Contenido')}</label>
                 <textarea required rows={5} value={form.content} onChange={(e) => setForm({ ...form, content: e.target.value })} placeholder="Escribe aquí..."
-                  className="w-full px-3 py-2 bg-signal-surface border border-signal-border text-signal-text text-sm rounded focus:outline-none focus:border-signal-green transition-colors resize-none" />
+                  className="w-full px-3 py-2 bg-signal-surface border border-signal-border text-signal-text text-sm rounded focus:outline-hidden focus:border-signal-green transition-colors resize-none" />
               </div>
               <div>
                 <label className="block text-xs text-signal-text-dim mb-2 uppercase tracking-wider">{t('notes.color', 'Color')}</label>
@@ -166,7 +166,7 @@ function NoteCard({ note, onEdit, onTogglePin, onDelete }: {
     <div className={`group relative rounded border ${colors.bg} ${colors.border} p-4 cursor-pointer hover:scale-[1.02] transition-transform`} onClick={() => onEdit(note)}>
       <div className="flex items-start justify-between gap-2 mb-2">
         <h3 className={`text-sm font-semibold ${colors.text} truncate flex-1`}>{note.title}</h3>
-        <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0" onClick={(e) => e.stopPropagation()}>
+        <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity shrink-0" onClick={(e) => e.stopPropagation()}>
           <button onClick={() => onTogglePin(note.id)}
             className={`p-1 rounded hover:bg-black/20 transition-colors ${note.pinned ? colors.text : 'text-signal-text-muted'}`}>
             <Pin size={11} />

@@ -75,7 +75,7 @@ export function About() {
                 'Python, Java, Groovy · Data & ML pipelines',
               ].map((item) => (
                 <div key={item} className="flex items-center gap-3">
-                  <div className="w-2 h-2 rounded-full bg-accent-400 flex-shrink-0" />
+                  <div className="w-2 h-2 rounded-full bg-accent-400 shrink-0" />
                   <span className="text-slate-300 text-sm">{item}</span>
                 </div>
               ))}

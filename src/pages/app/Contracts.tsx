@@ -138,7 +138,7 @@ export function Contracts() {
   const totalContractValue = contracts.reduce((s, c) => s + c.rate, 0);
 
   const inputCls =
-    'w-full px-3 py-2 bg-signal-bg border border-signal-border rounded-lg text-signal-text text-sm focus:outline-none focus:border-signal-border-bright transition-colors';
+    'w-full px-3 py-2 bg-signal-bg border border-signal-border rounded-lg text-signal-text text-sm focus:outline-hidden focus:border-signal-border-bright transition-colors';
 
   return (
     <div className="p-6 min-h-screen bg-signal-bg">
@@ -218,7 +218,7 @@ export function Contracts() {
                     <td className="px-4 py-3">
                       <div className="flex items-center gap-2">
                         <div
-                          className="w-2 h-2 rounded-full flex-shrink-0"
+                          className="w-2 h-2 rounded-full shrink-0"
                           style={{ backgroundColor: project?.color ?? '#888' }}
                         />
                         <span className="text-signal-text">{c.projectName}</span>

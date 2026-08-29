@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useParams } from 'react-router-dom';
 import {
-  GitBranch, GitCommit, GitPullRequest, Github, Shield, Star,
+  GitBranch, GitCommit, GitPullRequest, Shield, Star,
   CheckCircle2, Clock, XCircle, GitMerge,
 } from 'lucide-react';
 import { mockProjects, mockBranches, mockCommits, mockPRs } from '@/lib/mock-data';
@@ -66,7 +66,7 @@ function BranchesTable({ branches }: { branches: (RepoBranch & { isDefault: bool
             >
               <td className="py-3 px-3">
                 <div className="flex items-center gap-2">
-                  <GitBranch size={13} className="text-signal-green flex-shrink-0" />
+                  <GitBranch size={13} className="text-signal-green shrink-0" />
                   <span className="text-signal-text font-semibold">{branch.name}</span>
                 </div>
               </td>
@@ -115,11 +115,11 @@ function CommitsList({ commits }: { commits: RepoCommit[] }) {
           key={commit.sha}
           className="flex items-start gap-4 py-3.5 px-4 hover:bg-signal-surface/60 transition-colors"
         >
-          <GitCommit size={15} className="text-signal-green flex-shrink-0 mt-0.5" />
+          <GitCommit size={15} className="text-signal-green shrink-0 mt-0.5" />
           <div className="flex-1 min-w-0">
             <div className="flex items-start justify-between gap-3">
               <p className="text-signal-text text-sm font-medium truncate">{commit.message}</p>
-              <div className="flex items-center gap-2 flex-shrink-0">
+              <div className="flex items-center gap-2 shrink-0">
                 <span className="inline-flex items-center gap-1 text-xs text-signal-text-muted">
                   <GitBranch size={11} /> {commit.branch}
                 </span>
@@ -166,7 +166,7 @@ function PRsTable({ prs }: { prs: RepoPR[] }) {
               </td>
               <td className="py-3 px-3">
                 <div className="flex items-center gap-2">
-                  <GitPullRequest size={13} className="text-signal-green flex-shrink-0" />
+                  <GitPullRequest size={13} className="text-signal-green shrink-0" />
                   <span className="text-signal-text font-medium max-w-[220px] truncate">{pr.title}</span>
                 </div>
               </td>
@@ -218,7 +218,7 @@ export default function Repos() {
         <div className="w-full max-w-md bg-signal-card border border-signal-border rounded-2xl p-8 shadow-signal-card text-center">
           <div className="flex items-center justify-center mb-5">
             <div className="w-16 h-16 bg-signal-surface border border-signal-border rounded-2xl flex items-center justify-center">
-              <Github size={32} className="text-signal-green" />
+              <GitBranch size={32} className="text-signal-green" />
             </div>
           </div>
           <h2 className="text-signal-text text-lg font-bold mb-2">Connect GitHub Repository</h2>
@@ -232,7 +232,7 @@ export default function Repos() {
               value={repoInput}
               onChange={(e) => setRepoInput(e.target.value)}
               placeholder="e.g. aolmedof/cloud-migration"
-              className="w-full px-3 py-2.5 bg-signal-surface border border-signal-border rounded-lg text-signal-text placeholder-signal-text-muted focus:outline-none focus:border-signal-green/60 text-sm font-mono"
+              className="w-full px-3 py-2.5 bg-signal-surface border border-signal-border rounded-lg text-signal-text placeholder-signal-text-muted focus:outline-hidden focus:border-signal-green/60 text-sm font-mono"
             />
             <button
               onClick={() => {}}
@@ -261,7 +261,7 @@ export default function Repos() {
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-6">
         <div>
           <h1 className="text-xl font-bold text-signal-text flex items-center gap-2">
-            <Github size={20} className="text-signal-green" />
+            <GitBranch size={20} className="text-signal-green" />
             Repository
           </h1>
           <p className="text-signal-text-muted text-sm mt-0.5">

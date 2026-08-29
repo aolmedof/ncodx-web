@@ -90,7 +90,7 @@ export function SignIn() {
 
             {error && (
               <div className="flex items-start gap-2 p-3 bg-red-950/50 border border-red-800/50 rounded text-red-400 text-xs mb-6">
-                <AlertCircle size={13} className="mt-0.5 flex-shrink-0" />
+                <AlertCircle size={13} className="mt-0.5 shrink-0" />
                 <span>{error}</span>
               </div>
             )}
@@ -99,13 +99,13 @@ export function SignIn() {
               <div>
                 <label className="block text-xs text-signal-text-dim mb-1.5 tracking-wider uppercase">{t('auth.email', 'Email')}</label>
                 <input type="email" required placeholder="user@example.com" value={email} onChange={(e) => setEmail(e.target.value)}
-                  className="w-full px-3 py-2.5 bg-signal-card border border-signal-border text-signal-text placeholder-signal-text-muted text-sm rounded focus:outline-none focus:border-signal-green focus:ring-1 focus:ring-signal-green/30 transition-colors" />
+                  className="w-full px-3 py-2.5 bg-signal-card border border-signal-border text-signal-text placeholder-signal-text-muted text-sm rounded focus:outline-hidden focus:border-signal-green focus:ring-1 focus:ring-signal-green/30 transition-colors" />
               </div>
               <div>
                 <label className="block text-xs text-signal-text-dim mb-1.5 tracking-wider uppercase">{t('auth.password', 'Contraseña')}</label>
                 <div className="relative">
                   <input type={showPassword ? 'text' : 'password'} required placeholder="••••••••" value={password} onChange={(e) => setPassword(e.target.value)}
-                    className="w-full px-3 py-2.5 bg-signal-card border border-signal-border text-signal-text placeholder-signal-text-muted text-sm rounded focus:outline-none focus:border-signal-green focus:ring-1 focus:ring-signal-green/30 transition-colors pr-10" />
+                    className="w-full px-3 py-2.5 bg-signal-card border border-signal-border text-signal-text placeholder-signal-text-muted text-sm rounded focus:outline-hidden focus:border-signal-green focus:ring-1 focus:ring-signal-green/30 transition-colors pr-10" />
                   <button type="button" onClick={() => setShowPassword(!showPassword)}
                     className="absolute right-3 top-1/2 -translate-y-1/2 text-signal-text-muted hover:text-signal-text-dim transition-colors">
                     {showPassword ? <EyeOff size={15} /> : <Eye size={15} />}
@@ -145,17 +145,17 @@ export function SignIn() {
               <div>
                 <label className="block text-xs text-signal-text-dim mb-1.5 tracking-wider uppercase">{t('auth.name', 'Nombre')}</label>
                 <input type="text" required value={regName} onChange={(e) => setRegName(e.target.value)} placeholder="Tu nombre completo"
-                  className="w-full px-3 py-2.5 bg-signal-surface border border-signal-border text-signal-text placeholder-signal-text-muted text-sm rounded focus:outline-none focus:border-signal-green transition-colors" />
+                  className="w-full px-3 py-2.5 bg-signal-surface border border-signal-border text-signal-text placeholder-signal-text-muted text-sm rounded focus:outline-hidden focus:border-signal-green transition-colors" />
               </div>
               <div>
                 <label className="block text-xs text-signal-text-dim mb-1.5 tracking-wider uppercase">{t('auth.email', 'Email')}</label>
                 <input type="email" required value={regEmail} onChange={(e) => setRegEmail(e.target.value)} placeholder="tu@email.com"
-                  className="w-full px-3 py-2.5 bg-signal-surface border border-signal-border text-signal-text placeholder-signal-text-muted text-sm rounded focus:outline-none focus:border-signal-green transition-colors" />
+                  className="w-full px-3 py-2.5 bg-signal-surface border border-signal-border text-signal-text placeholder-signal-text-muted text-sm rounded focus:outline-hidden focus:border-signal-green transition-colors" />
               </div>
               <div>
                 <label className="block text-xs text-signal-text-dim mb-1.5 tracking-wider uppercase">{t('auth.password', 'Contraseña')}</label>
                 <input type="password" required value={regPassword} onChange={(e) => setRegPassword(e.target.value)} placeholder="••••••••"
-                  className="w-full px-3 py-2.5 bg-signal-surface border border-signal-border text-signal-text placeholder-signal-text-muted text-sm rounded focus:outline-none focus:border-signal-green transition-colors" />
+                  className="w-full px-3 py-2.5 bg-signal-surface border border-signal-border text-signal-text placeholder-signal-text-muted text-sm rounded focus:outline-hidden focus:border-signal-green transition-colors" />
               </div>
               <button type="submit" className="w-full px-4 py-2.5 bg-signal-green hover:bg-signal-green-dim text-signal-bg font-bold text-sm rounded transition-colors">
                 {t('auth.register', 'Registrarse')}
@@ -167,12 +167,12 @@ export function SignIn() {
 
       {registerToast && (
         <div className="fixed bottom-6 right-6 z-50 bg-signal-card border border-signal-border rounded px-4 py-3 flex items-start gap-3 shadow-signal-card max-w-sm">
-          <AlertCircle size={16} className="text-yellow-400 mt-0.5 flex-shrink-0" />
+          <AlertCircle size={16} className="text-yellow-400 mt-0.5 shrink-0" />
           <div>
             <div className="text-sm font-semibold text-signal-text">{t('auth.registerDisabledTitle', 'Registro deshabilitado')}</div>
             <div className="text-xs text-signal-text-dim mt-0.5">{t('auth.registerDisabled', 'El registro está temporalmente deshabilitado. Contacta al administrador.')}</div>
           </div>
-          <button onClick={() => setRegisterToast(false)} className="text-signal-text-muted hover:text-signal-text ml-2 flex-shrink-0"><X size={13} /></button>
+          <button onClick={() => setRegisterToast(false)} className="text-signal-text-muted hover:text-signal-text ml-2 shrink-0"><X size={13} /></button>
         </div>
       )}
     </div>

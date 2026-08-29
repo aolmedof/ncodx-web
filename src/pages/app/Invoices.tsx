@@ -20,6 +20,10 @@ function newItemId(): string {
   return `item_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`;
 }
 
+function newInvoiceId(): string {
+  return `inv_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`;
+}
+
 const STATUS_STYLES: Record<InvoiceStatus, string> = {
   draft: 'bg-slate-700/40 text-slate-300 border border-slate-600/40',
   sent: 'bg-blue-900/30 text-blue-300 border border-blue-700/40',
@@ -109,7 +113,7 @@ export function Invoices() {
   const handleCreateInvoice = () => {
     const project = mockProjects.find((p) => p.id === form.projectId);
     const newInvoice: Invoice = {
-      id: `inv_${Date.now()}`,
+      id: newInvoiceId(),
       projectId: form.projectId,
       projectName: project?.name ?? '',
       invoice_number: `INV-${new Date().getFullYear()}-${String(invoices.length + 1).padStart(3, '0')}`,
@@ -150,7 +154,7 @@ export function Invoices() {
 
   // ─── Input class ────────────────────────────────────────────────────────────
   const inputCls =
-    'w-full px-3 py-2 bg-signal-bg border border-signal-border rounded-lg text-signal-text text-sm focus:outline-none focus:border-signal-border-bright transition-colors';
+    'w-full px-3 py-2 bg-signal-bg border border-signal-border rounded-lg text-signal-text text-sm focus:outline-hidden focus:border-signal-border-bright transition-colors';
 
   return (
     <div className="p-6 min-h-screen bg-signal-bg">
@@ -218,7 +222,7 @@ export function Invoices() {
                   <td className="px-4 py-3">
                     <div className="flex items-center gap-2">
                       <div
-                        className="w-2 h-2 rounded-full flex-shrink-0"
+                        className="w-2 h-2 rounded-full shrink-0"
                         style={{ backgroundColor: mockProjects.find((p) => p.id === inv.projectId)?.color ?? '#888' }}
                       />
                       <span className="text-signal-text">{inv.projectName}</span>
@@ -372,7 +376,7 @@ export function Invoices() {
                               value={item.description}
                               onChange={(e) => updateItem(item.id, 'description', e.target.value)}
                               placeholder="Description"
-                              className="w-full bg-transparent text-signal-text placeholder:text-signal-text-muted focus:outline-none"
+                              className="w-full bg-transparent text-signal-text placeholder:text-signal-text-muted focus:outline-hidden"
                             />
                           </td>
                           <td className="px-2 py-1.5">
@@ -382,7 +386,7 @@ export function Invoices() {
                               step={0.5}
                               value={item.quantity}
                               onChange={(e) => updateItem(item.id, 'quantity', parseFloat(e.target.value) || 0)}
-                              className="w-full text-center bg-transparent text-signal-text focus:outline-none"
+                              className="w-full text-center bg-transparent text-signal-text focus:outline-hidden"
                             />
                           </td>
                           <td className="px-2 py-1.5">
@@ -392,7 +396,7 @@ export function Invoices() {
                               step={0.01}
                               value={item.unit_price}
                               onChange={(e) => updateItem(item.id, 'unit_price', parseFloat(e.target.value) || 0)}
-                              className="w-full text-right bg-transparent text-signal-text focus:outline-none"
+                              className="w-full text-right bg-transparent text-signal-text focus:outline-hidden"
                             />
                           </td>
                           <td className="px-2 py-1.5 text-right text-signal-text font-medium">
@@ -425,7 +429,7 @@ export function Invoices() {
                       step={0.5}
                       value={form.tax_rate}
                       onChange={(e) => setForm({ ...form, tax_rate: parseFloat(e.target.value) || 0 })}
-                      className="w-20 px-2 py-1 bg-signal-bg border border-signal-border rounded text-signal-text text-xs text-right focus:outline-none focus:border-signal-border-bright"
+                      className="w-20 px-2 py-1 bg-signal-bg border border-signal-border rounded text-signal-text text-xs text-right focus:outline-hidden focus:border-signal-border-bright"
                     />
                   </div>
                   <div className="flex justify-between text-xs text-signal-text-dim pt-1 border-t border-signal-border">

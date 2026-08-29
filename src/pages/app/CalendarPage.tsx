@@ -182,12 +182,12 @@ export function CalendarPage() {
               <div>
                 <label className="block text-xs text-signal-text-dim mb-1.5 uppercase tracking-wider">{t('calendar.eventTitle', 'Título')}</label>
                 <input required value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })} placeholder="Título del evento"
-                  className="w-full px-3 py-2 bg-signal-surface border border-signal-border text-signal-text text-sm rounded focus:outline-none focus:border-signal-green transition-colors" />
+                  className="w-full px-3 py-2 bg-signal-surface border border-signal-border text-signal-text text-sm rounded focus:outline-hidden focus:border-signal-green transition-colors" />
               </div>
               <div>
                 <label className="block text-xs text-signal-text-dim mb-1.5 uppercase tracking-wider">{t('calendar.description', 'Descripción')}</label>
                 <textarea value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} rows={3}
-                  className="w-full px-3 py-2 bg-signal-surface border border-signal-border text-signal-text text-sm rounded focus:outline-none focus:border-signal-green transition-colors resize-none" />
+                  className="w-full px-3 py-2 bg-signal-surface border border-signal-border text-signal-text text-sm rounded focus:outline-hidden focus:border-signal-green transition-colors resize-none" />
               </div>
               <div>
                 <label className="block text-xs text-signal-text-dim mb-1.5 uppercase tracking-wider">{t('calendar.color', 'Color')}</label>
@@ -213,7 +213,7 @@ export function CalendarPage() {
           <div className="bg-signal-card border border-signal-border rounded w-full max-w-sm mx-4 p-5 shadow-signal-card" onClick={(e) => e.stopPropagation()}>
             <div className="flex items-start justify-between mb-3">
               <div className="flex items-center gap-2">
-                <div className="w-3 h-3 rounded-full flex-shrink-0" style={{ backgroundColor: detailEvent.color }} />
+                <div className="w-3 h-3 rounded-full shrink-0" style={{ backgroundColor: detailEvent.color }} />
                 <h3 className="text-base font-bold text-signal-text">{detailEvent.title}</h3>
               </div>
               <button onClick={() => setDetailEvent(null)} className="text-signal-text-muted hover:text-signal-text"><X size={15} /></button>

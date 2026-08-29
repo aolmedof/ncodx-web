@@ -31,7 +31,7 @@ export function GlobalTopbar() {
   };
 
   return (
-    <header className="h-12 bg-signal-surface border-b border-signal-border flex items-center px-4 gap-4 flex-shrink-0 z-50">
+    <header className="h-12 bg-signal-surface border-b border-signal-border flex items-center px-4 gap-4 shrink-0 z-50">
       {/* Logo */}
       <Link to="/app" className="flex items-center gap-2 text-signal-green font-bold text-sm tracking-wider mr-4">
         <Terminal size={16} className="text-signal-green" />

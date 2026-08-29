@@ -254,7 +254,7 @@ export default function TerminalPage() {
     const ro = new ResizeObserver(() => {
       try {
         fitAddon.fit();
-      } catch (_) {
+      } catch {
         // ignore
       }
     });
@@ -283,7 +283,7 @@ export default function TerminalPage() {
   return (
     <div className="flex flex-col h-screen bg-signal-bg font-mono overflow-hidden">
       {/* Header */}
-      <div className="flex-shrink-0 flex items-center justify-between px-4 py-2.5 bg-signal-surface border-b border-signal-border">
+      <div className="shrink-0 flex items-center justify-between px-4 py-2.5 bg-signal-surface border-b border-signal-border">
         <div className="flex items-center gap-2">
           <TerminalIcon size={16} className="text-signal-green" />
           <span className="text-signal-text text-sm font-semibold">

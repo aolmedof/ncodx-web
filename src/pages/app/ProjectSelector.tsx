@@ -95,7 +95,7 @@ export default function ProjectSelector() {
             placeholder="Search projects or clients..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            className="w-full bg-signal-surface border border-signal-border rounded-lg pl-9 pr-4 py-2 text-sm text-signal-text placeholder-signal-text-muted focus:outline-none focus:border-signal-green transition-colors"
+            className="w-full bg-signal-surface border border-signal-border rounded-lg pl-9 pr-4 py-2 text-sm text-signal-text placeholder-signal-text-muted focus:outline-hidden focus:border-signal-green transition-colors"
           />
         </div>
         <div className="relative">
@@ -103,7 +103,7 @@ export default function ProjectSelector() {
           <select
             value={statusFilter}
             onChange={(e) => setStatusFilter(e.target.value as ProjectStatus | 'all')}
-            className="bg-signal-surface border border-signal-border rounded-lg pl-8 pr-4 py-2 text-sm text-signal-text focus:outline-none focus:border-signal-green transition-colors appearance-none cursor-pointer"
+            className="bg-signal-surface border border-signal-border rounded-lg pl-8 pr-4 py-2 text-sm text-signal-text focus:outline-hidden focus:border-signal-green transition-colors appearance-none cursor-pointer"
           >
             <option value="all">All Status</option>
             <option value="active">Active</option>
@@ -139,14 +139,14 @@ export default function ProjectSelector() {
                   <div className="flex items-start justify-between gap-2 mb-1">
                     <div className="flex items-center gap-2 min-w-0">
                       <div
-                        className="w-3 h-3 rounded-full flex-shrink-0"
+                        className="w-3 h-3 rounded-full shrink-0"
                         style={{ backgroundColor: project.color }}
                       />
                       <h2 className="text-signal-text font-semibold text-base truncate group-hover:text-signal-green transition-colors">
                         {project.name}
                       </h2>
                     </div>
-                    <span className={`text-xs px-2 py-0.5 rounded-full font-medium flex-shrink-0 ${badge.classes}`}>
+                    <span className={`text-xs px-2 py-0.5 rounded-full font-medium shrink-0 ${badge.classes}`}>
                       {badge.label}
                     </span>
                   </div>
@@ -219,7 +219,7 @@ export default function ProjectSelector() {
                   value={form.name}
                   onChange={(e) => setForm({ ...form, name: e.target.value })}
                   placeholder="e.g. Cloud Migration Phase 2"
-                  className="w-full bg-signal-surface border border-signal-border rounded-lg px-3 py-2 text-sm text-signal-text placeholder-signal-text-muted focus:outline-none focus:border-signal-green transition-colors"
+                  className="w-full bg-signal-surface border border-signal-border rounded-lg px-3 py-2 text-sm text-signal-text placeholder-signal-text-muted focus:outline-hidden focus:border-signal-green transition-colors"
                 />
               </div>
 
@@ -231,7 +231,7 @@ export default function ProjectSelector() {
                   value={form.description}
                   onChange={(e) => setForm({ ...form, description: e.target.value })}
                   placeholder="Brief description of the project..."
-                  className="w-full bg-signal-surface border border-signal-border rounded-lg px-3 py-2 text-sm text-signal-text placeholder-signal-text-muted focus:outline-none focus:border-signal-green transition-colors resize-none"
+                  className="w-full bg-signal-surface border border-signal-border rounded-lg px-3 py-2 text-sm text-signal-text placeholder-signal-text-muted focus:outline-hidden focus:border-signal-green transition-colors resize-none"
                 />
               </div>
 
@@ -262,7 +262,7 @@ export default function ProjectSelector() {
                     value={form.client_name}
                     onChange={(e) => setForm({ ...form, client_name: e.target.value })}
                     placeholder="Acme Corp"
-                    className="w-full bg-signal-surface border border-signal-border rounded-lg px-3 py-2 text-sm text-signal-text placeholder-signal-text-muted focus:outline-none focus:border-signal-green transition-colors"
+                    className="w-full bg-signal-surface border border-signal-border rounded-lg px-3 py-2 text-sm text-signal-text placeholder-signal-text-muted focus:outline-hidden focus:border-signal-green transition-colors"
                   />
                 </div>
                 <div>
@@ -272,7 +272,7 @@ export default function ProjectSelector() {
                     value={form.client_email}
                     onChange={(e) => setForm({ ...form, client_email: e.target.value })}
                     placeholder="client@company.com"
-                    className="w-full bg-signal-surface border border-signal-border rounded-lg px-3 py-2 text-sm text-signal-text placeholder-signal-text-muted focus:outline-none focus:border-signal-green transition-colors"
+                    className="w-full bg-signal-surface border border-signal-border rounded-lg px-3 py-2 text-sm text-signal-text placeholder-signal-text-muted focus:outline-hidden focus:border-signal-green transition-colors"
                   />
                 </div>
               </div>
@@ -287,7 +287,7 @@ export default function ProjectSelector() {
                   value={form.hourly_rate}
                   onChange={(e) => setForm({ ...form, hourly_rate: e.target.value })}
                   placeholder="85.00"
-                  className="w-full bg-signal-surface border border-signal-border rounded-lg px-3 py-2 text-sm text-signal-text placeholder-signal-text-muted focus:outline-none focus:border-signal-green transition-colors"
+                  className="w-full bg-signal-surface border border-signal-border rounded-lg px-3 py-2 text-sm text-signal-text placeholder-signal-text-muted focus:outline-hidden focus:border-signal-green transition-colors"
                 />
               </div>
 
@@ -300,7 +300,7 @@ export default function ProjectSelector() {
                     value={form.github_repo}
                     onChange={(e) => setForm({ ...form, github_repo: e.target.value })}
                     placeholder="owner/repo"
-                    className="w-full bg-signal-surface border border-signal-border rounded-lg px-3 py-2 text-sm text-signal-text placeholder-signal-text-muted focus:outline-none focus:border-signal-green transition-colors"
+                    className="w-full bg-signal-surface border border-signal-border rounded-lg px-3 py-2 text-sm text-signal-text placeholder-signal-text-muted focus:outline-hidden focus:border-signal-green transition-colors"
                   />
                 </div>
                 <div>
@@ -310,7 +310,7 @@ export default function ProjectSelector() {
                     value={form.azure_devops_org}
                     onChange={(e) => setForm({ ...form, azure_devops_org: e.target.value })}
                     placeholder="my-org"
-                    className="w-full bg-signal-surface border border-signal-border rounded-lg px-3 py-2 text-sm text-signal-text placeholder-signal-text-muted focus:outline-none focus:border-signal-green transition-colors"
+                    className="w-full bg-signal-surface border border-signal-border rounded-lg px-3 py-2 text-sm text-signal-text placeholder-signal-text-muted focus:outline-hidden focus:border-signal-green transition-colors"
                   />
                 </div>
               </div>

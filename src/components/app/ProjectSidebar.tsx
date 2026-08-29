@@ -52,7 +52,7 @@ export function ProjectSidebar({ project, collapsed, onToggle }: Props) {
 
   return (
     <aside
-      className={`${collapsed ? 'w-14' : 'w-52'} flex-shrink-0 bg-signal-surface border-r border-signal-border flex flex-col transition-all duration-200 overflow-hidden`}
+      className={`${collapsed ? 'w-14' : 'w-52'} shrink-0 bg-signal-surface border-r border-signal-border flex flex-col transition-all duration-200 overflow-hidden`}
     >
       {/* Project Header */}
       <div className={`flex items-center gap-2 px-3 py-3 border-b border-signal-border min-h-[52px] ${collapsed ? 'justify-center' : ''}`}>
@@ -60,13 +60,13 @@ export function ProjectSidebar({ project, collapsed, onToggle }: Props) {
           <>
             <button
               onClick={() => navigate('/app')}
-              className="text-signal-text-muted hover:text-signal-green transition-colors flex-shrink-0"
+              className="text-signal-text-muted hover:text-signal-green transition-colors shrink-0"
               title="Back to projects"
             >
               <ArrowLeft size={14} />
             </button>
             <div
-              className="w-2.5 h-2.5 rounded-full flex-shrink-0"
+              className="w-2.5 h-2.5 rounded-full shrink-0"
               style={{ backgroundColor: project.color }}
             />
             <span className="text-xs font-semibold text-signal-text truncate flex-1">{project.name}</span>
@@ -100,7 +100,7 @@ export function ProjectSidebar({ project, collapsed, onToggle }: Props) {
               }
               title={collapsed ? t(item.labelKey, item.key) : undefined}
             >
-              <item.icon size={15} className="flex-shrink-0" />
+              <item.icon size={15} className="shrink-0" />
               {!collapsed && <span className="truncate">{t(item.labelKey, item.key)}</span>}
             </NavLink>
           );
@@ -124,7 +124,7 @@ export function ProjectSidebar({ project, collapsed, onToggle }: Props) {
             }
             title={collapsed ? t(item.labelKey, item.path) : undefined}
           >
-            <item.icon size={15} className="flex-shrink-0" />
+            <item.icon size={15} className="shrink-0" />
             {!collapsed && <span className="truncate">{t(item.labelKey, item.path)}</span>}
           </NavLink>
         ))}

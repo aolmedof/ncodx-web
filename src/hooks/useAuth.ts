@@ -1,19 +1,15 @@
-import { useState, useCallback } from 'react';
-import { login, logout, getAuthState } from '@/lib/auth';
-import type { AuthState } from '@/types';
+import { useCallback, useSyncExternalStore } from 'react';
+import { getAuthState, loginWithApi, logout, subscribeAuth } from '@/lib/auth';
 
 export function useAuth() {
-  const [state, setState] = useState<AuthState>(getAuthState);
+  const state = useSyncExternalStore(subscribeAuth, getAuthState, getAuthState);
 
   const signIn = useCallback(async (email: string, password: string) => {
-    const newState = login(email, password);
-    setState(newState);
-    return newState;
+    return loginWithApi(email, password);
   }, []);
 
   const signOut = useCallback(() => {
     logout();
-    setState({ user: null, token: null, isAuthenticated: false });
   }, []);
 
   return { ...state, signIn, signOut };

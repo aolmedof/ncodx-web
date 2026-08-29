@@ -62,7 +62,7 @@ export function Contact() {
                     placeholder={t('contact.namePlaceholder')}
                     value={form.name}
                     onChange={(e) => setForm({ ...form, name: e.target.value })}
-                    className="w-full px-4 py-3 bg-slate-800 border border-slate-700 rounded-xl text-white placeholder-slate-500 focus:outline-none focus:border-primary-500 focus:ring-1 focus:ring-primary-500 transition-colors"
+                    className="w-full px-4 py-3 bg-slate-800 border border-slate-700 rounded-xl text-white placeholder-slate-500 focus:outline-hidden focus:border-primary-500 focus:ring-1 focus:ring-primary-500 transition-colors"
                   />
                 </div>
                 <div>
@@ -75,7 +75,7 @@ export function Contact() {
                     placeholder={t('contact.emailPlaceholder')}
                     value={form.email}
                     onChange={(e) => setForm({ ...form, email: e.target.value })}
-                    className="w-full px-4 py-3 bg-slate-800 border border-slate-700 rounded-xl text-white placeholder-slate-500 focus:outline-none focus:border-primary-500 focus:ring-1 focus:ring-primary-500 transition-colors"
+                    className="w-full px-4 py-3 bg-slate-800 border border-slate-700 rounded-xl text-white placeholder-slate-500 focus:outline-hidden focus:border-primary-500 focus:ring-1 focus:ring-primary-500 transition-colors"
                   />
                 </div>
                 <div>
@@ -88,7 +88,7 @@ export function Contact() {
                     placeholder={t('contact.messagePlaceholder')}
                     value={form.message}
                     onChange={(e) => setForm({ ...form, message: e.target.value })}
-                    className="w-full px-4 py-3 bg-slate-800 border border-slate-700 rounded-xl text-white placeholder-slate-500 focus:outline-none focus:border-primary-500 focus:ring-1 focus:ring-primary-500 transition-colors resize-none"
+                    className="w-full px-4 py-3 bg-slate-800 border border-slate-700 rounded-xl text-white placeholder-slate-500 focus:outline-hidden focus:border-primary-500 focus:ring-1 focus:ring-primary-500 transition-colors resize-none"
                   />
                 </div>
                 <button
@@ -126,7 +126,7 @@ export function Contact() {
               { icon: MapPin, label: 'Location', value: 'Barcelona, Aribau 3 · Remote-first' },
             ].map(({ icon: Icon, label, value }) => (
               <div key={label} className="flex items-start gap-4">
-                <div className="w-10 h-10 bg-primary-600/20 rounded-lg flex items-center justify-center flex-shrink-0 mt-0.5">
+                <div className="w-10 h-10 bg-primary-600/20 rounded-lg flex items-center justify-center shrink-0 mt-0.5">
                   <Icon size={18} className="text-primary-400" />
                 </div>
                 <div>

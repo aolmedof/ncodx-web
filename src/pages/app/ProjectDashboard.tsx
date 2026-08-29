@@ -104,7 +104,7 @@ export default function ProjectDashboard() {
       {/* Project Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div className="flex items-center gap-3">
-          <div className="w-4 h-4 rounded-full flex-shrink-0" style={{ backgroundColor: project.color }} />
+          <div className="w-4 h-4 rounded-full shrink-0" style={{ backgroundColor: project.color }} />
           <h1 className="text-2xl font-bold text-signal-text">{project.name}</h1>
           <span className={`text-xs px-2 py-0.5 rounded-full font-medium capitalize ${statusBadgeClass}`}>
             {project.status}
@@ -194,7 +194,7 @@ export default function ProjectDashboard() {
             <ul className="space-y-3">
               {recentTasks.map((task) => (
                 <li key={task.id} className="flex items-start gap-2.5">
-                  <div className="w-2 h-2 rounded-full mt-1.5 flex-shrink-0" style={{ backgroundColor: task.projectColor }} />
+                  <div className="w-2 h-2 rounded-full mt-1.5 shrink-0" style={{ backgroundColor: task.projectColor }} />
                   <div className="flex-1 min-w-0">
                     <p className="text-signal-text text-xs font-medium truncate">{task.title}</p>
                     <div className="flex items-center gap-1 mt-0.5">
@@ -234,7 +234,7 @@ export default function ProjectDashboard() {
                   : '';
                 return (
                   <li key={pl.id} className="flex items-center gap-3 p-2 bg-signal-surface rounded-lg">
-                    <div className={`w-2 h-2 rounded-full flex-shrink-0 ${st.dot}`} />
+                    <div className={`w-2 h-2 rounded-full shrink-0 ${st.dot}`} />
                     <div className="flex-1 min-w-0">
                       <p className="text-signal-text text-xs font-medium truncate">{pl.name}</p>
                       <div className="flex items-center gap-1.5 mt-0.5">
@@ -247,7 +247,7 @@ export default function ProjectDashboard() {
                       </div>
                     </div>
                     {time && (
-                      <span className="text-signal-text-muted text-xs flex-shrink-0">{time}</span>
+                      <span className="text-signal-text-muted text-xs shrink-0">{time}</span>
                     )}
                   </li>
                 );
@@ -268,7 +268,7 @@ export default function ProjectDashboard() {
             <ul className="space-y-3">
               {upcomingEvents.map((ev) => (
                 <li key={ev.id} className="flex items-start gap-3 p-2 bg-signal-surface rounded-lg">
-                  <div className="w-2 h-2 rounded-full flex-shrink-0 mt-1.5" style={{ backgroundColor: ev.color }} />
+                  <div className="w-2 h-2 rounded-full shrink-0 mt-1.5" style={{ backgroundColor: ev.color }} />
                   <div className="flex-1 min-w-0">
                     <p className="text-signal-text text-xs font-medium truncate">{ev.title}</p>
                     <p className="text-signal-text-muted text-xs mt-0.5">{formatEventDate(new Date(ev.start))}</p>
@@ -293,21 +293,21 @@ export default function ProjectDashboard() {
               onClick={() => navigate(`/app/p/${projectId}/boards`)}
               className="flex items-center gap-3 w-full bg-signal-surface border border-signal-border hover:border-signal-green/50 rounded-lg px-4 py-3 text-sm text-signal-text transition-colors group"
             >
-              <Plus size={15} className="text-signal-green flex-shrink-0" />
+              <Plus size={15} className="text-signal-green shrink-0" />
               <span>New Task</span>
             </button>
             <button
               onClick={() => navigate(`/app/p/${projectId}/timesheet`)}
               className="flex items-center gap-3 w-full bg-signal-surface border border-signal-border hover:border-signal-green/50 rounded-lg px-4 py-3 text-sm text-signal-text transition-colors"
             >
-              <Clock size={15} className="text-yellow-400 flex-shrink-0" />
+              <Clock size={15} className="text-yellow-400 shrink-0" />
               <span>Log Time</span>
             </button>
             <button
               onClick={() => navigate(`/app/p/${projectId}/invoices`)}
               className="flex items-center gap-3 w-full bg-signal-surface border border-signal-border hover:border-signal-green/50 rounded-lg px-4 py-3 text-sm text-signal-text transition-colors"
             >
-              <FileText size={15} className="text-blue-400 flex-shrink-0" />
+              <FileText size={15} className="text-blue-400 shrink-0" />
               <span>Create Invoice</span>
             </button>
           </div>

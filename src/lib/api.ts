@@ -1,36 +1,49 @@
-import { getToken } from './auth';
-
-const BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3001';
+import { getToken, logout } from './auth';
+import { API_BASE_URL } from './config';
 
 async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
+  if (!API_BASE_URL) {
+    throw new Error('VITE_API_BASE_URL is not configured');
+  }
   const token = getToken();
-  const headers: Record<string, string> = {
-    'Content-Type': 'application/json',
-    ...(options.headers as Record<string, string>),
-  };
-
-  if (token) {
-    headers['Authorization'] = `Bearer ${token}`;
+  const headers = new Headers(options.headers);
+  if (options.body !== undefined && !headers.has('Content-Type')) {
+    headers.set('Content-Type', 'application/json');
   }
 
-  const response = await fetch(`${BASE_URL}${path}`, {
+  if (token) {
+    headers.set('Authorization', `Bearer ${token}`);
+  }
+
+  const response = await fetch(`${API_BASE_URL}${path}`, {
     ...options,
     headers,
   });
 
   if (response.status === 401) {
-    localStorage.removeItem('ncodx_token');
-    localStorage.removeItem('ncodx_user');
-    window.location.href = '/signin';
+    logout();
+    if (window.location.pathname !== '/signin') window.location.assign('/signin');
     throw new Error('Unauthorized');
   }
 
+  const responseText = await response.text();
   if (!response.ok) {
-    const error = await response.text();
-    throw new Error(error || `HTTP ${response.status}`);
+    let message = responseText;
+    try {
+      const parsed = JSON.parse(responseText) as { error?: string };
+      message = parsed.error ?? responseText;
+    } catch {
+      // Keep the plain-text response as the error message.
+    }
+    throw new Error(message || `HTTP ${response.status}`);
   }
 
-  return response.json() as Promise<T>;
+  if (response.status === 204 || !responseText) return undefined as T;
+  try {
+    return JSON.parse(responseText) as T;
+  } catch {
+    throw new Error('API returned an invalid JSON response');
+  }
 }
 
 export const api = {

@@ -82,10 +82,6 @@ export function CommandPalette() {
     : allItems.slice(0, 8);
 
   useEffect(() => {
-    setSelected(0);
-  }, [query]);
-
-  useEffect(() => {
     if (!open) return;
     const handler = (e: KeyboardEvent) => {
       if (e.key === 'ArrowDown') { e.preventDefault(); setSelected((s) => Math.min(s + 1, filtered.length - 1)); }
@@ -103,14 +99,17 @@ export function CommandPalette() {
       <div className="w-full max-w-xl mx-4 bg-signal-card border border-signal-border rounded-lg shadow-signal-card overflow-hidden" onClick={(e) => e.stopPropagation()}>
         {/* Search input */}
         <div className="flex items-center gap-3 px-4 py-3 border-b border-signal-border">
-          <Search size={15} className="text-signal-text-muted flex-shrink-0" />
+          <Search size={15} className="text-signal-text-muted shrink-0" />
           <input
             autoFocus
             type="text"
             placeholder={t('app.commandPlaceholder', 'Buscar proyectos, tareas, páginas...')}
             value={query}
-            onChange={(e) => setQuery(e.target.value)}
-            className="flex-1 bg-transparent text-signal-text placeholder-signal-text-muted text-sm focus:outline-none font-mono"
+            onChange={(e) => {
+              setQuery(e.target.value);
+              setSelected(0);
+            }}
+            className="flex-1 bg-transparent text-signal-text placeholder-signal-text-muted text-sm focus:outline-hidden font-mono"
           />
           <kbd className="text-xs text-signal-text-muted bg-signal-surface px-1.5 py-0.5 rounded border border-signal-border">ESC</kbd>
         </div>
@@ -131,12 +130,12 @@ export function CommandPalette() {
                   idx === selected ? 'bg-signal-surface text-signal-text' : 'text-signal-text-dim hover:bg-signal-surface'
                 }`}
               >
-                <span className="flex-shrink-0">{item.icon}</span>
+                <span className="shrink-0">{item.icon}</span>
                 <span className="flex-1 min-w-0">
                   <div className="text-sm truncate">{item.label}</div>
                   {item.sublabel && <div className="text-xs text-signal-text-muted truncate">{item.sublabel}</div>}
                 </span>
-                <span className="text-xs text-signal-text-muted flex-shrink-0">{item.category}</span>
+                <span className="text-xs text-signal-text-muted shrink-0">{item.category}</span>
               </button>
             ))
           )}

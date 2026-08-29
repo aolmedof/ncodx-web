@@ -30,7 +30,12 @@ export function Secrets() {
   const [form, setForm] = useState({ name: '', value: '', category: 'api_key' as SecretCategory, description: '' });
 
   const toggleVisible = (id: string) => {
-    setVisible((prev) => { const n = new Set(prev); n.has(id) ? n.delete(id) : n.add(id); return n; });
+    setVisible((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
   };
 
   const copyValue = (id: string, value: string) => {
@@ -88,10 +93,10 @@ export function Secrets() {
         <div className="relative flex-1 min-w-48">
           <Search size={13} className="absolute left-3 top-1/2 -translate-y-1/2 text-signal-text-muted" />
           <input type="text" placeholder={t('app.search', 'Buscar...')} value={search} onChange={(e) => setSearch(e.target.value)}
-            className="w-full pl-8 pr-3 py-2 bg-signal-card border border-signal-border text-signal-text placeholder-signal-text-muted text-xs rounded focus:outline-none focus:border-signal-green transition-colors" />
+            className="w-full pl-8 pr-3 py-2 bg-signal-card border border-signal-border text-signal-text placeholder-signal-text-muted text-xs rounded focus:outline-hidden focus:border-signal-green transition-colors" />
         </div>
         <select value={categoryFilter} onChange={(e) => setCategoryFilter(e.target.value as SecretCategory | 'all')}
-          className="bg-signal-card border border-signal-border text-signal-text-dim text-xs rounded px-3 py-2 focus:outline-none focus:border-signal-green transition-colors">
+          className="bg-signal-card border border-signal-border text-signal-text-dim text-xs rounded px-3 py-2 focus:outline-hidden focus:border-signal-green transition-colors">
           <option value="all">{t('secrets.allCategories', 'Todas las categorías')}</option>
           {(Object.keys(CATEGORY_LABELS) as SecretCategory[]).map((cat) => (
             <option key={cat} value={cat}>{CATEGORY_LABELS[cat]}</option>
@@ -108,7 +113,7 @@ export function Secrets() {
           </div>
         ) : filtered.map((secret) => (
           <div key={secret.id} className="bg-signal-card border border-signal-border rounded flex items-center gap-4 px-4 py-3 hover:border-signal-border-bright transition-colors">
-            <Key size={14} className="text-signal-text-muted flex-shrink-0" />
+            <Key size={14} className="text-signal-text-muted shrink-0" />
             <div className="flex-1 min-w-0">
               <div className="flex items-center gap-2 mb-1">
                 <span className="text-sm font-semibold text-signal-text truncate">{secret.name}</span>
@@ -123,7 +128,7 @@ export function Secrets() {
             <div className="font-mono text-xs text-signal-text-dim bg-signal-surface border border-signal-border rounded px-3 py-1.5 min-w-0 max-w-xs truncate">
               {visible.has(secret.id) ? secret.value : '•'.repeat(Math.min(secret.value.length, 24))}
             </div>
-            <div className="flex items-center gap-1 flex-shrink-0">
+            <div className="flex items-center gap-1 shrink-0">
               <button onClick={() => toggleVisible(secret.id)} title={visible.has(secret.id) ? 'Hide' : 'Show'}
                 className="p-1.5 text-signal-text-muted hover:text-signal-text transition-colors rounded hover:bg-signal-surface">
                 {visible.has(secret.id) ? <EyeOff size={13} /> : <Eye size={13} />}
@@ -156,17 +161,17 @@ export function Secrets() {
               <div>
                 <label className="block text-xs text-signal-text-dim mb-1.5 uppercase tracking-wider">{t('secrets.name', 'Nombre')}</label>
                 <input required value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} placeholder="MY_SECRET_KEY"
-                  className="w-full px-3 py-2 bg-signal-surface border border-signal-border text-signal-text text-sm rounded focus:outline-none focus:border-signal-green transition-colors" />
+                  className="w-full px-3 py-2 bg-signal-surface border border-signal-border text-signal-text text-sm rounded focus:outline-hidden focus:border-signal-green transition-colors" />
               </div>
               <div>
                 <label className="block text-xs text-signal-text-dim mb-1.5 uppercase tracking-wider">{t('secrets.value', 'Valor')}</label>
                 <input required type="password" value={form.value} onChange={(e) => setForm({ ...form, value: e.target.value })} placeholder="••••••••"
-                  className="w-full px-3 py-2 bg-signal-surface border border-signal-border text-signal-text text-sm rounded focus:outline-none focus:border-signal-green transition-colors" />
+                  className="w-full px-3 py-2 bg-signal-surface border border-signal-border text-signal-text text-sm rounded focus:outline-hidden focus:border-signal-green transition-colors" />
               </div>
               <div>
                 <label className="block text-xs text-signal-text-dim mb-1.5 uppercase tracking-wider">{t('secrets.category', 'Categoría')}</label>
                 <select value={form.category} onChange={(e) => setForm({ ...form, category: e.target.value as SecretCategory })}
-                  className="w-full px-3 py-2 bg-signal-surface border border-signal-border text-signal-text text-sm rounded focus:outline-none focus:border-signal-green transition-colors">
+                  className="w-full px-3 py-2 bg-signal-surface border border-signal-border text-signal-text text-sm rounded focus:outline-hidden focus:border-signal-green transition-colors">
                   {(Object.keys(CATEGORY_LABELS) as SecretCategory[]).map((cat) => (
                     <option key={cat} value={cat}>{CATEGORY_LABELS[cat]}</option>
                   ))}
@@ -175,7 +180,7 @@ export function Secrets() {
               <div>
                 <label className="block text-xs text-signal-text-dim mb-1.5 uppercase tracking-wider">{t('secrets.description', 'Descripción (opcional)')}</label>
                 <input value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} placeholder="Descripción del secreto"
-                  className="w-full px-3 py-2 bg-signal-surface border border-signal-border text-signal-text text-sm rounded focus:outline-none focus:border-signal-green transition-colors" />
+                  className="w-full px-3 py-2 bg-signal-surface border border-signal-border text-signal-text text-sm rounded focus:outline-hidden focus:border-signal-green transition-colors" />
               </div>
               <button type="submit" className="w-full px-4 py-2.5 bg-signal-green hover:bg-signal-green-dim text-signal-bg font-bold text-sm rounded transition-colors">
                 {t('app.save', 'Guardar')}

@@ -149,7 +149,7 @@ function TaskCard({
         <div className="flex items-center justify-between mt-1">
           {task.assignee ? (
             <div
-              className="w-6 h-6 rounded-full flex items-center justify-center text-signal-bg text-xs font-bold flex-shrink-0"
+              className="w-6 h-6 rounded-full flex items-center justify-center text-signal-bg text-xs font-bold shrink-0"
               style={{ backgroundColor: task.projectColor }}
               title={task.assignee}
             >
@@ -231,12 +231,12 @@ function AddTaskForm({ status, projectId, projectName, projectColor, onAdd, onCa
           if (e.key === 'Enter') handleSubmit();
           if (e.key === 'Escape') onCancel();
         }}
-        className="w-full bg-signal-card border border-signal-border rounded-lg px-3 py-1.5 text-sm text-signal-text placeholder-signal-text-muted focus:outline-none focus:border-signal-green transition-colors"
+        className="w-full bg-signal-card border border-signal-border rounded-lg px-3 py-1.5 text-sm text-signal-text placeholder-signal-text-muted focus:outline-hidden focus:border-signal-green transition-colors"
       />
       <select
         value={priority}
         onChange={(e) => setPriority(e.target.value as TaskPriority)}
-        className="w-full bg-signal-card border border-signal-border rounded-lg px-3 py-1.5 text-xs text-signal-text focus:outline-none focus:border-signal-green transition-colors"
+        className="w-full bg-signal-card border border-signal-border rounded-lg px-3 py-1.5 text-xs text-signal-text focus:outline-hidden focus:border-signal-green transition-colors"
       >
         <option value="low">Low Priority</option>
         <option value="medium">Medium Priority</option>
@@ -356,14 +356,6 @@ export default function Boards() {
     setAddingTo(null);
   }
 
-  function handleStatusChange(id: string, status: TaskStatus) {
-    setTasks((prev) =>
-      prev.map((t) =>
-        t.id === id ? { ...t, status, updatedAt: new Date().toISOString() } : t
-      )
-    );
-  }
-
   if (!project) {
     return (
       <div className="min-h-screen bg-signal-bg flex items-center justify-center text-signal-text-muted font-mono">
@@ -393,7 +385,7 @@ export default function Boards() {
               placeholder="Search tasks or tags..."
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              className="w-full bg-signal-surface border border-signal-border rounded-lg pl-8 pr-3 py-2 text-sm text-signal-text placeholder-signal-text-muted focus:outline-none focus:border-signal-green transition-colors"
+              className="w-full bg-signal-surface border border-signal-border rounded-lg pl-8 pr-3 py-2 text-sm text-signal-text placeholder-signal-text-muted focus:outline-hidden focus:border-signal-green transition-colors"
             />
           </div>
 
@@ -403,7 +395,7 @@ export default function Boards() {
             <select
               value={priorityFilter}
               onChange={(e) => setPriorityFilter(e.target.value as TaskPriority | 'all')}
-              className="bg-signal-surface border border-signal-border rounded-lg pl-8 pr-3 py-2 text-sm text-signal-text focus:outline-none focus:border-signal-green transition-colors appearance-none cursor-pointer"
+              className="bg-signal-surface border border-signal-border rounded-lg pl-8 pr-3 py-2 text-sm text-signal-text focus:outline-hidden focus:border-signal-green transition-colors appearance-none cursor-pointer"
             >
               <option value="all">All Priorities</option>
               <option value="urgent">Urgent</option>
@@ -417,7 +409,7 @@ export default function Boards() {
           <select
             value={assigneeFilter}
             onChange={(e) => setAssigneeFilter(e.target.value)}
-            className="bg-signal-surface border border-signal-border rounded-lg px-3 py-2 text-sm text-signal-text focus:outline-none focus:border-signal-green transition-colors appearance-none cursor-pointer"
+            className="bg-signal-surface border border-signal-border rounded-lg px-3 py-2 text-sm text-signal-text focus:outline-hidden focus:border-signal-green transition-colors appearance-none cursor-pointer"
           >
             <option value="all">All Assignees</option>
             <option value="unassigned">Unassigned</option>

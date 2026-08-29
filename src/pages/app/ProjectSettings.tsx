@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { useParams } from 'react-router-dom';
 import {
   Settings, Link2, AlertTriangle, Save, CheckCircle2,
-  Github, Cloud, Code2, Eye, EyeOff, Plug, Unplug,
+  Cloud, Code2, Eye, EyeOff, Plug, Unplug,
   Archive, Trash2, Globe, DollarSign,
 } from 'lucide-react';
 import { mockProjects } from '@/lib/mock-data';
@@ -31,7 +31,7 @@ const AWS_REGIONS = [
 
 // ─── Reusable input styles ────────────────────────────────────────────────────
 const inputCls =
-  'w-full px-3 py-2.5 bg-signal-surface border border-signal-border rounded-lg text-signal-text placeholder-signal-text-muted focus:outline-none focus:border-signal-green/60 text-sm font-mono transition-colors';
+  'w-full px-3 py-2.5 bg-signal-surface border border-signal-border rounded-lg text-signal-text placeholder-signal-text-muted focus:outline-hidden focus:border-signal-green/60 text-sm font-mono transition-colors';
 
 const labelCls = 'block text-signal-text-dim text-xs font-medium mb-1.5 uppercase tracking-wider';
 
@@ -62,6 +62,37 @@ function MaskedInput({
         {show ? <EyeOff size={14} /> : <Eye size={14} />}
       </button>
     </div>
+  );
+}
+
+function ConnectButton({
+  connected,
+  onConnect,
+  onDisconnect,
+}: {
+  connected: boolean;
+  onConnect: () => void;
+  onDisconnect: () => void;
+}) {
+  if (connected) {
+    return (
+      <button
+        type="button"
+        onClick={onDisconnect}
+        className="flex items-center gap-2 px-4 py-2 bg-red-900/20 hover:bg-red-900/40 border border-red-700/40 text-red-400 rounded-lg text-sm font-medium transition-colors"
+      >
+        <Unplug size={14} /> Disconnect
+      </button>
+    );
+  }
+  return (
+    <button
+      type="button"
+      onClick={onConnect}
+      className="flex items-center gap-2 px-4 py-2 bg-signal-green/10 hover:bg-signal-green/20 border border-signal-green/40 text-signal-green rounded-lg text-sm font-medium transition-colors"
+    >
+      <Plug size={14} /> Connect
+    </button>
   );
 }
 
@@ -267,37 +298,6 @@ function IntegrationsTab({ project }: { project: Project }) {
     connected: !!(project.aws_account_id),
   });
 
-  function ConnectButton({
-    connected,
-    onConnect,
-    onDisconnect,
-  }: {
-    connected: boolean;
-    onConnect: () => void;
-    onDisconnect: () => void;
-  }) {
-    if (connected) {
-      return (
-        <button
-          type="button"
-          onClick={onDisconnect}
-          className="flex items-center gap-2 px-4 py-2 bg-red-900/20 hover:bg-red-900/40 border border-red-700/40 text-red-400 rounded-lg text-sm font-medium transition-colors"
-        >
-          <Unplug size={14} /> Disconnect
-        </button>
-      );
-    }
-    return (
-      <button
-        type="button"
-        onClick={onConnect}
-        className="flex items-center gap-2 px-4 py-2 bg-signal-green/10 hover:bg-signal-green/20 border border-signal-green/40 text-signal-green rounded-lg text-sm font-medium transition-colors"
-      >
-        <Plug size={14} /> Connect
-      </button>
-    );
-  }
-
   return (
     <div className="space-y-5 max-w-2xl">
       {/* Azure DevOps */}
@@ -360,7 +360,7 @@ function IntegrationsTab({ project }: { project: Project }) {
         <div className="flex items-center justify-between mb-4">
           <div className="flex items-center gap-2">
             <div className="w-8 h-8 bg-slate-700/60 border border-slate-600/50 rounded-lg flex items-center justify-center">
-              <Github size={16} className="text-slate-200" />
+              <Code2 size={16} className="text-slate-200" />
             </div>
             <div>
               <h3 className="text-signal-text font-semibold text-sm">GitHub</h3>
@@ -383,7 +383,7 @@ function IntegrationsTab({ project }: { project: Project }) {
         <div>
           <label className={labelCls}>Repository (owner/repo)</label>
           <div className="flex items-center gap-2">
-            <Globe size={14} className="text-signal-text-muted flex-shrink-0" />
+            <Globe size={14} className="text-signal-text-muted shrink-0" />
             <input
               value={github.repo}
               onChange={(e) => setGithub({ ...github, repo: e.target.value })}
@@ -495,7 +495,7 @@ function DangerTab({ project }: { project: Project }) {
                 setTimeout(() => setArchiveConfirm(false), 4000);
               }
             }}
-            className="flex-shrink-0 flex items-center gap-2 px-4 py-2 bg-orange-900/20 hover:bg-orange-900/40 border border-orange-700/50 text-orange-400 rounded-lg text-sm font-medium transition-colors"
+            className="shrink-0 flex items-center gap-2 px-4 py-2 bg-orange-900/20 hover:bg-orange-900/40 border border-orange-700/50 text-orange-400 rounded-lg text-sm font-medium transition-colors"
           >
             <Archive size={14} />
             {archiveConfirm ? 'Confirm Archive' : 'Archive Project'}
@@ -528,7 +528,7 @@ function DangerTab({ project }: { project: Project }) {
                 setTimeout(() => setDeleteConfirm(false), 4000);
               }
             }}
-            className="flex-shrink-0 flex items-center gap-2 px-4 py-2 bg-red-900/30 hover:bg-red-900/50 border border-red-700/60 text-red-400 rounded-lg text-sm font-medium transition-colors"
+            className="shrink-0 flex items-center gap-2 px-4 py-2 bg-red-900/30 hover:bg-red-900/50 border border-red-700/60 text-red-400 rounded-lg text-sm font-medium transition-colors"
           >
             <Trash2 size={14} />
             {deleteConfirm ? 'Confirm Delete' : 'Delete Project'}
